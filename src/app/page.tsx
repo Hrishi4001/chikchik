@@ -12,14 +12,23 @@ import FaqGroups from '@/components/faq/FaqGroups';
 export default function HomePage() {
   const { products, formatPrice } = useStore();
 
-  // Carousel 1: New Arrivals (first 12 products)
-  const carousel1Products = products.slice(0, 12);
+  // Lead every rail with pieces that can actually be bought
+  const available = (p: Product) => p.inStock && p.stockCount > 0;
+  const byStock = [...products].sort((a, b) => Number(available(b)) - Number(available(a)));
+  const fromPrice = (category: string) =>
+    Math.min(...products.filter((p) => p.category === category && available(p)).map((p) => p.price));
 
-  // Carousel 2: Spring Summer 26 (next 8 products)
-  const carousel2Products = products.slice(12, 20);
+  // Carousel 1: New Arrivals
+  const carousel1Products = byStock.filter((p) => p.isNewArrival).concat(byStock.filter((p) => !p.isNewArrival)).slice(0, 12);
+
+  // Carousel 2: Kurti Suits marquee
+  const kurtiSuits = byStock.filter((p) => p.category === 'kurti-suits').slice(0, 12);
+
+  // Carousel 3: Sarees marquee
+  const sarees = byStock.filter((p) => p.category === 'sarees').slice(0, 12);
 
   // Bento: a large saree beside two smaller pieces, drawn from beyond the carousels.
-  const pool = products.slice(20).filter((p) => p.images?.length);
+  const pool = byStock.slice(20).filter((p) => p.images?.length);
   const bentoSarees = pool.filter((p) => p.category === 'sarees');
   const bentoOthers = pool.filter((p) => p.category !== 'sarees');
   const featuredProducts = [bentoSarees[0], bentoOthers[0] ?? bentoSarees[2], bentoSarees[1]].filter(Boolean) as Product[];
@@ -41,7 +50,6 @@ export default function HomePage() {
 
   // Carousel 1 scroll ref
   const carousel1Ref = useRef<HTMLDivElement>(null);
-  const carousel2Ref = useRef<HTMLDivElement>(null);
 
   const scrollCarousel = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
     if (ref.current) {
@@ -59,7 +67,7 @@ export default function HomePage() {
       
       {/* ========================================================
           SECTION 1: HERO BANNER (section-hero-banner)
-          Full viewport height, top vignette overlay, BAREFOOT text
+          Full viewport height; copy sits on the soft left half on desktop
           ======================================================== */}
       <section 
         className="hero-section-full"
@@ -99,26 +107,23 @@ export default function HomePage() {
             gap: '1.25rem'
           }}
         >
-          <p
-            style={{
-              fontFamily: 'var(--font-heading-family)',
-              fontSize: '1.15rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              color: '#FFFFFF',
-              fontWeight: 400,
-              margin: 0
-            }}
-          >
-            BAREFOOT
-          </p>
-
-          <Link
-            href="/shop"
-            className="button--white-outlined"
-          >
-            SHOP NOW
-          </Link>
+          <div className="hero-copy">
+            <p className="hero-eyebrow">Sarees &amp; Kurti Suits</p>
+            <h1 className="hero-title">Everyday ease, festive grace.</h1>
+            <p className="hero-sub">
+              {Number.isFinite(fromPrice('sarees')) && <>Sarees from {formatPrice(fromPrice('sarees'))} · </>}
+              {Number.isFinite(fromPrice('kurti-suits')) && <>Kurti suits from {formatPrice(fromPrice('kurti-suits'))} · </>}
+              Free shipping above ₹699
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <Link href="/shop?category=sarees" className="button--white-outlined hero-cta-solid">
+                Shop Sarees
+              </Link>
+              <Link href="/shop?category=kurti-suits" className="button--white-outlined">
+                Shop Kurti Suits
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -371,7 +376,7 @@ export default function HomePage() {
                 margin: 0
               }}
             >
-              There is a certain point in every evening when the shoes come off and things get better.
+              Woven for the festivals you look forward to, and the everyday moments in between.
             </h2>
 
             <div>
@@ -387,8 +392,8 @@ export default function HomePage() {
       </section>
 
       {/* ========================================================
-          SECTION 4: FEATURED PRODUCTS CAROUSEL 2 (Spring Summer 26)
-          Heading "Spring Summer 26" + 8 Carousel Items
+          SECTION 4: KURTI SUITS
+          Continuous marquee, same motion as the Instagram strip
           ======================================================== */}
       <section
         style={{
@@ -399,66 +404,26 @@ export default function HomePage() {
         }}
       >
         <div className="container">
-          {/* Section Header */}
-          <div
+          <h2
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '2rem'
+              fontFamily: 'var(--font-heading-family)',
+              fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
+              fontWeight: 400,
+              color: '#580F00',
+              letterSpacing: '-0.02em',
+              margin: '0 0 2rem'
             }}
           >
-            <h2
-              style={{
-                fontFamily: 'var(--font-heading-family)',
-                fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
-                fontWeight: 400,
-                color: '#580F00',
-                letterSpacing: '-0.02em',
-                margin: 0
-              }}
-            >
-              Spring Summer 26
-            </h2>
+            Kurti Suits
+          </h2>
+        </div>
 
-            {/* Slider Navigation Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                onClick={() => scrollCarousel(carousel2Ref, 'left')}
-                className="swiper-nav-btn"
-                aria-label="Previous Slide"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                onClick={() => scrollCarousel(carousel2Ref, 'right')}
-                className="swiper-nav-btn"
-                aria-label="Next Slide"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
+        <ProductMarquee products={kurtiSuits} />
 
-          {/* Carousel Track */}
-          <div 
-            ref={carousel2Ref}
-            className="swiper-track-custom"
-          >
-            {carousel2Products.map((product) => (
-              <div 
-                key={product.id} 
-                className="swiper-slide-item"
-              >
-                <ProductCard product={product} />
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom View All Button */}
+        <div className="container">
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
             <Link
-              href="/shop?collection=ss26"
+              href="/shop?category=kurti-suits"
               className="button button--outlined"
             >
               View all
@@ -466,6 +431,49 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ========================================================
+          SECTION 4B: SAREES
+          Continuous marquee, same motion as the Instagram strip
+          ======================================================== */}
+      {sarees.length > 0 && (
+      <section
+        style={{
+          paddingTop: '4rem',
+          paddingBottom: '4rem',
+          backgroundColor: '#FFFFFF',
+          borderBottom: '1px solid #EBEBEB'
+        }}
+      >
+        <div className="container">
+          <h2
+            style={{
+              fontFamily: 'var(--font-heading-family)',
+              fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
+              fontWeight: 400,
+              color: '#580F00',
+              letterSpacing: '-0.02em',
+              margin: '0 0 2rem'
+            }}
+          >
+            Sarees
+          </h2>
+        </div>
+
+        <ProductMarquee products={sarees} />
+
+        <div className="container">
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
+            <Link
+              href="/shop?category=sarees"
+              className="button button--outlined"
+            >
+              View all
+            </Link>
+          </div>
+        </div>
+      </section>
+      )}
 
       {/* ========================================================
           SECTION 5: FEATURED BENTO
@@ -516,37 +524,37 @@ export default function HomePage() {
           >
             <div>
               <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#580F00', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Pure Natural Fibers
+                Quality Fabrics
               </p>
               <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '0.82rem', color: '#5C5852', margin: 0 }}>
-                100% organic cotton, hand-spun silks & khadi
+                Silks, crepes and breathable cottons
               </p>
             </div>
 
             <div>
               <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#580F00', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Handloom Certified
+                Easy 7-Day Returns
               </p>
               <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '0.82rem', color: '#5C5852', margin: 0 }}>
-                Generational weaving & hand aari embroidery
+                Hassle-free returns &amp; size exchanges
               </p>
             </div>
 
             <div>
               <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#580F00', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Complimentary Shipping
+                Free Shipping Above ₹699
               </p>
               <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '0.82rem', color: '#5C5852', margin: 0 }}>
-                Insured express delivery across India
+                Insured delivery across India
               </p>
             </div>
 
             <div>
               <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#580F00', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Bespoke Atelier Fit
+                Cash on Delivery
               </p>
               <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '0.82rem', color: '#5C5852', margin: 0 }}>
-                Complimentary tailored adjustments on request
+                Or pay securely with UPI &amp; cards
               </p>
             </div>
           </div>
@@ -602,6 +610,26 @@ function InstagramIcon({ size = 26 }: { size?: number }) {
       <circle cx="12" cy="12" r="4" />
       <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
     </svg>
+  );
+}
+
+// Product cards on the same continuous marquee as the Instagram strip.
+function ProductMarquee({ products }: { products: Product[] }) {
+  return (
+    <div className="insta-viewport product-marquee">
+      <div className="insta-track" style={{ animationDuration: `${products.length * 8}s` }}>
+        {[...products, ...products].map((p, i) => (
+          <div
+            key={`${p.id}-${i}`}
+            className="product-marquee-item"
+            aria-hidden={i >= products.length || undefined}
+            inert={i >= products.length || undefined}
+          >
+            <ProductCard product={p} />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -69,10 +69,10 @@ export default function SizeChartPage() {
       </section>
 
       <section className="policy-body" style={{ marginTop: '2rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-heading-family)', fontSize: '1.2rem', fontWeight: 500, marginBottom: '0.75rem' }}>Custom Fit</h2>
+        <h2 style={{ fontFamily: 'var(--font-heading-family)', fontSize: '1.2rem', fontWeight: 500, marginBottom: '0.75rem' }}>Need Help With Fit?</h2>
         <p>
-          Between sizes or need a different sleeve or garment length? Choose <em>Custom Fit</em> on the product page and our team
-          will reach out on WhatsApp at {LEGAL.whatsapp} to take your measurements. Custom orders need about 5 extra business days.
+          Between sizes? Message us on WhatsApp at {LEGAL.whatsapp} with your measurements and we&apos;ll recommend the right size.
+          Sarees are free size and suit all body types.
         </p>
       </section>
 

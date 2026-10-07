@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useStore } from '@/context/StoreContext';
 import { INFO_PAGES, LEGAL_PAGES } from '@/lib/legal';
+import { openCookiePreferences } from '@/lib/consent';
 
 export default function Footer() {
   const { showToast } = useStore();
@@ -117,6 +118,11 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button type="button" onClick={openCookiePreferences} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-body-family)', fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.85)' }}>
+                  Cookie Preferences
+                </button>
+              </li>
             </ul>
           </div>
 

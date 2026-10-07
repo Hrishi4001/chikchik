@@ -29,6 +29,8 @@ interface StoreContextType {
   milestoneDiscount: number;
   promoCode: string;
   applyPromoCode: (code: string) => boolean;
+  removePromoCode: () => void;
+  unavailableItems: CartItem[];
   clearCart: () => void;
   
   // Wishlist
@@ -67,14 +69,29 @@ interface StoreContextType {
   showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
 
+const PROMO_CODES: Record<string, { pct: number; message: string }> = {
+  ELEGANCE: { pct: 0.1, message: 'Promo code applied: 10% off' },
+  ROYAL10: { pct: 0.1, message: 'Promo code applied: 10% off' },
+  FIRST15: { pct: 0.15, message: 'First order special: 15% off applied' }
+};
+
+// Admin edits are kept in localStorage; they are dropped whenever the shipped catalog changes so shoppers never see stale data
+const CATALOG_VERSION = (() => {
+  const json = JSON.stringify(INITIAL_PRODUCTS);
+  let h = 0;
+  for (let i = 0; i < json.length; i++) h = (h * 31 + json.charCodeAt(i)) | 0;
+  return String(h);
+})();
+
+const isPurchasable = (p?: Product) => !!p && p.inStock && p.stockCount > 0;
+
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [storedCart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [promoCode, setPromoCode] = useState('');
-  const [promoDiscountPct, setPromoDiscountPct] = useState(0);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -96,7 +113,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (savedOrders) setOrders(JSON.parse(savedOrders));
 
       const savedProducts = localStorage.getItem('svayam_products');
-      if (savedProducts) setProducts(JSON.parse(savedProducts));
+      if (savedProducts && localStorage.getItem('svayam_catalog_version') === CATALOG_VERSION) setProducts(JSON.parse(savedProducts));
+
+      const savedPromo = localStorage.getItem('svayam_promo');
+      if (savedPromo && PROMO_CODES[savedPromo]) setPromoCode(savedPromo);
     } catch {
       // ignore SSR/hydration storage errors
     }
@@ -115,8 +135,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
     try {
       localStorage.setItem('svayam_products', JSON.stringify(products));
+      localStorage.setItem('svayam_catalog_version', CATALOG_VERSION);
     } catch {}
   }, [products, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      if (promoCode) localStorage.setItem('svayam_promo', promoCode);
+      else localStorage.removeItem('svayam_promo');
+    } catch {}
+  }, [promoCode, hydrated]);
+
+  // Cart lines always reflect the live catalog (price, stock, images), not the snapshot taken when added
+  const cart: CartItem[] = storedCart.map((item) => {
+    const live = products.find((p) => p.id === item.product.id);
+    return live ? { ...item, product: live, unitPrice: live.price + (item.selectedStitching?.price || 0) } : item;
+  });
+  const unavailableItems = cart.filter((item) => !isPurchasable(products.find((p) => p.id === item.product.id)));
+  const availableCart = cart.filter((item) => !unavailableItems.includes(item));
 
   const saveCartToStorage = (newCart: CartItem[]) => {
     setCart(newCart);
@@ -137,18 +174,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     `₹${Math.round(amountInINR).toLocaleString('en-IN')}`;
 
   const addToCart = (product: Product, size: SizeOption, stitching?: StitchingOption, quantity = 1) => {
+    if (!isPurchasable(product)) {
+      showToast(`"${product.title}" is sold out`, 'error');
+      return;
+    }
     const cartItemId = `${product.id}-${size}-${stitching?.id || 'none'}`;
     const unitPrice = product.price + (stitching?.price || 0);
 
-    const existingIndex = cart.findIndex((item) => item.id === cartItemId);
+    const existingIndex = storedCart.findIndex((item) => item.id === cartItemId);
     let updated: CartItem[];
 
     if (existingIndex > -1) {
-      updated = [...cart];
-      updated[existingIndex].quantity += quantity;
+      updated = storedCart.map((item, i) => (i === existingIndex ? { ...item, quantity: item.quantity + quantity } : item));
     } else {
       updated = [
-        ...cart,
+        ...storedCart,
         {
           id: cartItemId,
           product,
@@ -161,12 +201,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
 
     saveCartToStorage(updated);
-    showToast(`Added "${product.title}" to bag`, 'success');
+    // Opening the bag is the confirmation; a toast here would cover the checkout button
     setIsCartOpen(true);
   };
 
   const removeFromCart = (cartItemId: string) => {
-    const updated = cart.filter((item) => item.id !== cartItemId);
+    const updated = storedCart.filter((item) => item.id !== cartItemId);
     saveCartToStorage(updated);
     showToast('Item removed from shopping bag', 'info');
   };
@@ -176,7 +216,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       removeFromCart(cartItemId);
       return;
     }
-    const updated = cart.map((item) =>
+    const updated = storedCart.map((item) =>
       item.id === cartItemId ? { ...item, quantity } : item
     );
     saveCartToStorage(updated);
@@ -185,29 +225,28 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const clearCart = () => {
     saveCartToStorage([]);
     setPromoCode('');
-    setPromoDiscountPct(0);
   };
 
   const applyPromoCode = (code: string): boolean => {
     const clean = code.trim().toUpperCase();
-    if (clean === 'ELEGANCE' || clean === 'ROYAL10') {
-      setPromoCode(clean);
-      setPromoDiscountPct(0.10);
-      showToast('Promo code applied: 10% privilege discount activated!', 'success');
-      return true;
-    } else if (clean === 'FIRST15') {
-      setPromoCode(clean);
-      setPromoDiscountPct(0.15);
-      showToast('First Order Special: 15% discount applied!', 'success');
-      return true;
-    } else {
-      showToast('Invalid promo code. Try "ELEGANCE" or "ROYAL10"', 'error');
+    const promo = PROMO_CODES[clean];
+    if (!promo) {
+      showToast(`"${clean}" isn't a valid code`, 'error');
       return false;
     }
+    setPromoCode(clean);
+    showToast(promo.message, 'success');
+    return true;
   };
 
-  const cartSubtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const promoDiscount = Math.round(cartSubtotal * promoDiscountPct);
+  const removePromoCode = () => {
+    setPromoCode('');
+    showToast('Promo code removed', 'info');
+  };
+
+  // Sold-out lines stay visible in the bag but are never charged
+  const cartSubtotal = availableCart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const promoDiscount = Math.round(cartSubtotal * (PROMO_CODES[promoCode]?.pct ?? 0));
   const milestoneDiscount = getCartRewards(cartSubtotal).discount;
   const cartDiscount = promoDiscount + milestoneDiscount;
 
@@ -353,6 +392,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         milestoneDiscount,
         promoCode,
         applyPromoCode,
+        removePromoCode,
+        unavailableItems,
         clearCart,
         wishlist,
         toggleWishlist,

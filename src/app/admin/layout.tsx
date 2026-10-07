@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, Package, CreditCard, BarChart3, ExternalLink, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, CreditCard, BarChart3, Users, ExternalLink, LogOut } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import styles from './admin.module.css';
 
@@ -12,7 +12,8 @@ const NAV = [
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
-  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 }
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/admin/visitors', label: 'Visitors', icon: Users }
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

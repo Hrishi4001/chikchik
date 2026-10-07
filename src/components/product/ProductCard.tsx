@@ -18,6 +18,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const secondaryImage = product.images[1] || product.images[0];
+  const isSoldOut = !product.inStock || product.stockCount <= 0;
+  const discountPct =
+    product.compareAtPrice && product.compareAtPrice > product.price
+      ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
+      : 0;
 
   return (
     <div
@@ -40,6 +45,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           width: '100%',
           aspectRatio: '3 / 4',
           overflow: 'hidden',
+          borderRadius: '10px',
           backgroundColor: '#F8F6F2'
         }}
       >
@@ -65,6 +71,13 @@ export default function ProductCard({ product }: ProductCardProps) {
               transform: isHovered ? 'scale(1.02)' : 'scale(1)'
             }}
           />
+
+          {isSoldOut && (
+            <span className="product-card-badge is-soldout">Sold out</span>
+          )}
+          {!isSoldOut && discountPct >= 10 && (
+            <span className="product-card-badge">{discountPct}% off</span>
+          )}
 
           {/* Secondary hover image */}
           <img
@@ -96,40 +109,40 @@ export default function ProductCard({ product }: ProductCardProps) {
               router.push(`/product/${product.slug}`);
             }
           }}
-          disabled={!product.inStock}
-          aria-label={product.inStock ? `Add ${product.title} to cart` : 'Out of stock'}
-          title={product.inStock ? 'Add to cart' : 'Out of stock'}
+          hidden={isSoldOut}
+          aria-label={product.sizes.length === 1 ? `Add ${product.title} to cart` : `Choose a size for ${product.title}`}
+          title={product.sizes.length === 1 ? 'Add to cart' : 'Choose size'}
           style={{
             position: 'absolute',
             bottom: '0.75rem',
             right: '0.75rem',
-            width: '36px',
-            height: '36px',
+            width: '40px',
+            height: '40px',
             borderRadius: '8px',
-            backgroundColor: '#580F00',
-            border: '1px solid #580F00',
+            backgroundColor: '#141414',
+            border: '1px solid #141414',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-            display: 'flex',
+            display: isSoldOut ? 'none' : 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 15,
-            cursor: product.inStock ? 'pointer' : 'not-allowed',
-            opacity: product.inStock ? 1 : 0.5,
+            cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
         >
-          <Plus size={18} color="#FFFFFF" strokeWidth={1.8} />
+          <Plus size={20} color="#FFFFFF" strokeWidth={2} />
         </button>
       </div>
 
       {/* Product Title and Price Info */}
       <div 
         style={{ 
-          paddingTop: '0.9rem', 
+ 
+          paddingTop: '1rem',
           paddingBottom: '0.5rem',
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '0.25rem' 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.4rem'
         }}
       >
         <Link 
@@ -139,8 +152,10 @@ export default function ProductCard({ product }: ProductCardProps) {
           <h3
             style={{
               fontFamily: 'var(--font-body-family)',
-              fontSize: '0.94rem',
-              fontWeight: 400,
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
               color: '#580F00',
               lineHeight: 1.35,
               transition: 'color 0.2s ease',
@@ -158,12 +173,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span
             style={{
               fontFamily: 'var(--font-body-family)',
-              fontSize: '0.88rem',
+              fontSize: '0.9rem',
               fontWeight: 400,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
               color: '#580F00'
             }}
           >
-            Regular price {formatPrice(product.price)}
+            {formatPrice(product.price)}
           </span>
           {product.compareAtPrice && product.compareAtPrice > product.price && (
             <span
@@ -178,6 +195,18 @@ export default function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
         </div>
+
+        <p
+          style={{
+            fontFamily: 'var(--font-body-family)',
+            fontSize: '0.82rem',
+            color: '#9A8F86',
+            margin: '0.15rem 0 0'
+          }}
+        >
+          {product.fabric}
+          {product.sizes.length > 1 ? ` · ${product.sizes[0]}–${product.sizes[product.sizes.length - 1]}` : ''}
+        </p>
       </div>
     </div>
   );

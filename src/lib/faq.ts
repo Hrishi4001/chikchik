@@ -30,7 +30,7 @@ export const FAQ_GROUPS: { heading: string; items: Faq[] }[] = [
     heading: 'Sizing & Fit',
     items: [
       { q: 'How do I find my size?', a: 'Use our Size Guide, which lists garment measurements for every size from XS to 4XL in inches and centimetres.', link: { href: '/pages/size-chart', label: 'Open the Size Guide' } },
-      { q: 'Do you offer custom sizing?', a: 'Yes. Select Custom Fit on the product page and our team will contact you on WhatsApp to take your measurements.' },
+      { q: 'What if I am between sizes?', a: 'Message us on WhatsApp with your measurements and we will help you choose the best size. Sarees are free size.' },
     ],
   },
   {

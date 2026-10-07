@@ -25,7 +25,8 @@ export default function PrivacyPolicyPage() {
             <ul>
               <li><strong>Information you provide:</strong> name, email address, phone number, shipping and billing address, measurements for custom-fit orders, and messages you send us.</li>
               <li><strong>Order information:</strong> products purchased, order value, payment method and transaction status. We do not store your full card, UPI PIN or net-banking credentials; payments are processed by our PCI-DSS compliant payment partner (Razorpay).</li>
-              <li><strong>Automatically collected data:</strong> IP address, device and browser type, pages visited, and cookies or similar technologies.</li>
+              <li><strong>Marketing sign-ups:</strong> your mobile number (and name, if given) when you join our WhatsApp/SMS updates, together with a record of when and how you gave consent.</li>
+              <li><strong>Automatically collected data:</strong> approximate location (country, state, city), device and browser type, pages visited, and the website that referred you. Your IP address is used only to derive location and an anonymous daily visit code; it is not stored. See our <a href="/pages/cookie-policy">Cookie Policy</a>.</li>
             </ul>
           ),
         },
@@ -36,7 +37,8 @@ export default function PrivacyPolicyPage() {
               <li>To process, ship and deliver your orders, and to handle returns, exchanges and refunds.</li>
               <li>To communicate order updates by SMS, email or WhatsApp.</li>
               <li>To respond to your queries and provide customer support.</li>
-              <li>To send newsletters and offers, only where you have opted in. You can unsubscribe at any time.</li>
+              <li>To send newsletters and offers by email, SMS or WhatsApp, only where you have given separate, explicit consent. You can unsubscribe at any time by replying STOP or contacting us.</li>
+              <li>To produce aggregated visitor statistics (for example, number of visitors and which countries they come from).</li>
               <li>To improve our website, products and services, and to prevent fraud and misuse.</li>
               <li>To comply with legal, tax and accounting obligations.</li>
             </ul>
@@ -58,11 +60,11 @@ export default function PrivacyPolicyPage() {
         },
         {
           heading: 'Cookies',
-          body: <p>We use cookies to keep you signed in, remember your cart and wishlist, and understand how visitors use our site. You can disable cookies in your browser settings, but parts of the website such as the cart and checkout may not work correctly.</p>,
+          body: <p>We use strictly necessary cookies to remember your cart, wishlist and cookie choice. Analytics and marketing cookies are used only if you accept them in our cookie banner, and you can change your choice any time via &ldquo;Cookie Preferences&rdquo; in the footer. Full details are in our <a href="/pages/cookie-policy">Cookie Policy</a>.</p>,
         },
         {
           heading: 'Data Retention & Security',
-          body: <p>We keep your personal data only as long as needed for the purposes above or as required by law (for example, invoice records for tax purposes). We use reasonable technical and organisational safeguards, including encrypted (HTTPS) connections, to protect your data. No method of transmission over the internet is completely secure, but we work to protect your information.</p>,
+          body: <p>We keep your personal data only as long as needed for the purposes above or as required by law (for example, invoice records for tax purposes). Visitor statistics are deleted after 180 days. Marketing phone numbers are kept until you withdraw consent, and are deleted within 30 days of your request. We use reasonable technical and organisational safeguards, including encrypted (HTTPS) connections, to protect your data. No method of transmission over the internet is completely secure, but we work to protect your information.</p>,
         },
         {
           heading: 'Your Rights',
@@ -72,7 +74,8 @@ export default function PrivacyPolicyPage() {
               <ul>
                 <li>Access, correct or update your personal data by contacting us.</li>
                 <li>Request deletion of your account and personal data, subject to legal retention requirements.</li>
-                <li>Withdraw consent for marketing communications.</li>
+                <li>Withdraw consent for marketing communications or optional cookies at any time. Withdrawing is as easy as giving consent, and does not affect processing that happened before.</li>
+                <li>Have your grievance redressed, and if unresolved, complain to the Data Protection Board of India.</li>
                 <li>Nominate another person to exercise your rights in case of death or incapacity.</li>
               </ul>
             </>

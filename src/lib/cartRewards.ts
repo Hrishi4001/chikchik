@@ -1,16 +1,16 @@
 export interface CartMilestone {
   threshold: number; // INR, evaluated on cart subtotal
   label: string;
-  perk: string;
+  perk: string; // only what this milestone adds over the previous one
   discount: number;
   freeShipping: boolean;
   gift: boolean;
 }
 
 export const CART_MILESTONES: CartMilestone[] = [
-  { threshold: 699, label: 'Free Shipping', perk: 'Free shipping', discount: 0, freeShipping: true, gift: false },
-  { threshold: 1300, label: '₹200 Off', perk: '₹200 off + free shipping', discount: 200, freeShipping: true, gift: false },
-  { threshold: 3500, label: 'Exclusive Gift', perk: '₹200 off + free shipping + exclusive gift', discount: 200, freeShipping: true, gift: true }
+  { threshold: 699, label: 'Free Shipping', perk: 'free shipping', discount: 0, freeShipping: true, gift: false },
+  { threshold: 1300, label: '₹200 Off', perk: '₹200 off', discount: 200, freeShipping: true, gift: false },
+  { threshold: 3500, label: 'Exclusive Gift', perk: 'an exclusive gift', discount: 200, freeShipping: true, gift: true }
 ];
 
 export const STANDARD_SHIPPING_FEE = 500;

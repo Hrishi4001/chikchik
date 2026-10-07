@@ -12,7 +12,8 @@ import {
   Sparkles,
   AlertTriangle,
   MapPin,
-  Loader2
+  Loader2,
+  Tag
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { Order, PaymentAttempt, UserAddress } from '@/lib/types';
@@ -63,6 +64,10 @@ export default function CheckoutPage() {
     promoDiscount,
     milestoneDiscount,
     promoCode,
+    applyPromoCode,
+    removePromoCode,
+    unavailableItems,
+    removeFromCart,
     formatPrice,
     createOrder,
     updateOrder,
@@ -90,6 +95,7 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [promoInput, setPromoInput] = useState('');
   const [mockSheet, setMockSheet] = useState<{ orderNumber: string; resolve: (r: MockOutcome) => void } | null>(null);
 
   // A pending order is reused across payment retries so failed attempts stay on one order record.
@@ -242,6 +248,10 @@ export default function CheckoutPage() {
       setStep(e.name || e.email || e.phone ? 1 : 2);
       return;
     }
+    if (unavailableItems.length) {
+      setPaymentError('Some items in your bag have sold out. Remove them to continue.');
+      return;
+    }
     if (payOption === 'COD' && !codAvailable) {
       setPaymentError('Cash on Delivery is not available for this order.');
       return;
@@ -348,11 +358,13 @@ export default function CheckoutPage() {
         {step > n && summary && <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>{summary}</div>}
       </div>
       {step > n && (
-        <button type="button" onClick={() => setStep(n)} style={{ fontSize: '0.78rem', fontWeight: 600, textDecoration: 'underline' }}>
-          Edit
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+          <button type="button" onClick={() => setStep(n)} style={{ fontSize: '0.78rem', fontWeight: 600, textDecoration: 'underline' }}>
+            Edit
+          </button>
+          <CheckCircle2 size={18} color="#1f7a4d" />
+        </div>
       )}
-      {step > n && <CheckCircle2 size={18} color="#1f7a4d" style={{ flexShrink: 0 }} />}
     </div>
   );
 
@@ -556,25 +568,58 @@ export default function CheckoutPage() {
 
           {/* Order summary */}
           <aside style={{ ...cardStyle, position: 'sticky', top: '100px' }}>
-            <h3 style={{ ...headingStyle, marginBottom: '1.25rem' }}>Order Summary ({cart.reduce((s, i) => s + i.quantity, 0)} items)</h3>
+            <h3 style={{ ...headingStyle, marginBottom: '1.25rem' }}>Order Summary ({cart.reduce((s, i) => s + i.quantity, 0)} {cart.reduce((s, i) => s + i.quantity, 0) === 1 ? 'item' : 'items'})</h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '320px', overflowY: 'auto', marginBottom: '1.5rem', paddingRight: '0.5rem' }}>
               {cart.map((item) => (
-                <div key={item.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div key={item.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', opacity: unavailableItems.includes(item) ? 0.55 : 1 }}>
                   <img src={item.product.images[0]} alt={item.product.title} style={{ width: '54px', height: '72px', objectFit: 'cover', borderRadius: '4px' }} />
                   <div style={{ flex: 1 }}>
                     <p style={{ fontFamily: 'var(--font-serif)', fontSize: '0.95rem', fontWeight: 600, lineHeight: 1.2 }}>{item.product.title}</p>
                     <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                       Size: {item.selectedSize} {item.selectedStitching ? `• ${item.selectedStitching.name}` : ''}
                     </p>
-                    <p style={{ fontSize: '0.75rem', fontWeight: 500, marginTop: '0.2rem' }}>
-                      Qty: {item.quantity} × {formatPrice(item.unitPrice)}
-                    </p>
+                    {unavailableItems.includes(item) ? (
+                      <p style={{ fontSize: '0.75rem', fontWeight: 600, marginTop: '0.2rem', color: '#B3261E' }}>
+                        Sold out ·{' '}
+                        <button type="button" onClick={() => removeFromCart(item.id)} style={{ textDecoration: 'underline', color: 'inherit', fontWeight: 600 }}>
+                          Remove
+                        </button>
+                      </p>
+                    ) : (
+                      <p style={{ fontSize: '0.75rem', fontWeight: 500, marginTop: '0.2rem' }}>
+                        Qty: {item.quantity} × {formatPrice(item.unitPrice)}
+                      </p>
+                    )}
                   </div>
                   <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{formatPrice(item.unitPrice * item.quantity)}</span>
                 </div>
               ))}
             </div>
+
+            {promoCode ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', padding: '0.6rem 0.75rem', border: '1px dashed #1B4435', borderRadius: '4px', backgroundColor: '#F0F7F2', fontSize: '0.8rem', color: '#1B4435' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Tag size={14} /> <strong>{promoCode}</strong> applied</span>
+                <button type="button" onClick={removePromoCode} style={{ fontSize: '0.75rem', textDecoration: 'underline', color: 'var(--text-secondary)' }}>Remove</button>
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (promoInput.trim() && applyPromoCode(promoInput)) setPromoInput('');
+                }}
+                style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}
+              >
+                <input
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value)}
+                  placeholder="Promo code"
+                  aria-label="Promo code"
+                  style={{ flex: 1, padding: '0.65rem 0.75rem', fontSize: '0.8rem', border: '1px solid var(--border-medium)', borderRadius: '4px', textTransform: 'uppercase' }}
+                />
+                <button type="submit" className="btn-secondary" style={{ padding: '0.65rem 1.25rem', fontSize: '0.75rem' }}>Apply</button>
+              </form>
+            )}
 
             <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -612,7 +657,7 @@ export default function CheckoutPage() {
             <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#FDF9F5', borderRadius: '6px', border: '1px solid var(--border-subtle)', display: 'flex', gap: '0.6rem' }}>
               <Sparkles size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                Each garment ships with a cotton dust bag, handloom certification and insured doorstep delivery.
+                Every order is quality-checked, carefully packed and shipped with insured doorstep delivery.
               </p>
             </div>
           </aside>

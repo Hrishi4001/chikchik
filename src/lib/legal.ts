@@ -7,7 +7,7 @@ export const LEGAL = {
   address: 'India', // TODO: registered business address
   jurisdiction: 'India', // TODO: city for courts' jurisdiction, e.g. "Hyderabad, Telangana"
   grievanceOfficer: 'Customer Care Team', // TODO: name of Grievance Officer (IT Rules 2021 / DPDP Act 2023)
-  lastUpdated: '6 October 2026',
+  lastUpdated: '7 October 2026',
   freeShippingThreshold: 699,
   standardShippingFee: 500,
   expressShippingFee: 800,
@@ -18,6 +18,7 @@ export const LEGAL_PAGES = [
   { href: '/pages/shipping-policy', label: 'Shipping Policy' },
   { href: '/pages/return-exchange-policy', label: 'Return & Exchange' },
   { href: '/pages/privacy-policy', label: 'Privacy Policy' },
+  { href: '/pages/cookie-policy', label: 'Cookie Policy' },
   { href: '/pages/terms', label: 'Terms & Conditions' },
 ] as const;
 

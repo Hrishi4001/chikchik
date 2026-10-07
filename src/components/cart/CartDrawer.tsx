@@ -25,6 +25,8 @@ export default function CartDrawer() {
     products,
     addToCart,
     applyPromoCode,
+    removePromoCode,
+    unavailableItems,
     formatPrice 
   } = useStore();
 
@@ -327,8 +329,14 @@ export default function CartDrawer() {
                   </div>
 
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    Size: <strong>{item.selectedSize}</strong>
+                    {item.product.color && <>Colour: <strong>{item.product.color}</strong> · </>}Size: <strong>{item.selectedSize}</strong>
                   </p>
+
+                  {unavailableItems.includes(item) && (
+                    <p style={{ fontSize: '0.75rem', color: '#B3261E', fontWeight: 600, marginTop: '0.35rem' }}>
+                      Sold out · remove to continue
+                    </p>
+                  )}
 
                   {item.selectedStitching && item.selectedStitching.price > 0 && (
                     <p style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', marginTop: '0.15rem' }}>
@@ -373,7 +381,7 @@ export default function CartDrawer() {
                       </button>
                     </div>
 
-                    <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.95rem', textDecoration: unavailableItems.includes(item) ? 'line-through' : undefined, color: unavailableItems.includes(item) ? 'var(--text-muted)' : undefined }}>
                       {formatPrice(item.unitPrice * item.quantity)}
                     </span>
                   </div>
@@ -437,12 +445,23 @@ export default function CartDrawer() {
             }}
           >
             {/* Promo Code Form */}
+            {promoCode ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem', padding: '0.6rem 0.75rem', border: '1px dashed #1B4435', borderRadius: '4px', backgroundColor: '#F0F7F2', fontSize: '0.8rem', color: '#1B4435' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Tag size={14} /> <strong>{promoCode}</strong> applied · you save {formatPrice(promoDiscount)}
+                </span>
+                <button type="button" onClick={removePromoCode} style={{ fontSize: '0.75rem', textDecoration: 'underline', color: 'var(--text-secondary)' }}>
+                  Remove
+                </button>
+              </div>
+            ) : (
             <form onSubmit={handleApplyPromo} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
               <div style={{ position: 'relative', flex: 1 }}>
                 <Tag size={14} style={{ position: 'absolute', left: '10px', top: '12px', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
-                  placeholder={promoCode ? `Applied: ${promoCode}` : "Privilege Code (try 'ELEGANCE')"}
+                  placeholder="Promo code"
+                  aria-label="Promo code"
                   value={inputCode}
                   onChange={(e) => setInputCode(e.target.value)}
                   style={{
@@ -464,10 +483,11 @@ export default function CartDrawer() {
                 Apply
               </button>
             </form>
+            )}
 
             {promoError && (
               <p style={{ fontSize: '0.72rem', color: 'red', marginTop: '-0.5rem', marginBottom: '0.75rem' }}>
-                Invalid code. Try "ELEGANCE" for 10% privilege discount.
+                That code isn&apos;t valid. New here? Try FIRST15 for 15% off.
               </p>
             )}
 
@@ -479,7 +499,7 @@ export default function CartDrawer() {
               </div>
               {promoDiscount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--color-earth-brown)' }}>
-                  <span>Privilege Discount ({promoCode})</span>
+                  <span>Discount ({promoCode})</span>
                   <span>- {formatPrice(promoDiscount)}</span>
                 </div>
               )}
@@ -517,10 +537,16 @@ export default function CartDrawer() {
             </div>
 
             {/* Checkout CTA */}
+            {unavailableItems.length > 0 && (
+              <p style={{ fontSize: '0.75rem', color: '#B3261E', marginBottom: '0.6rem', textAlign: 'center' }}>
+                Remove sold-out {unavailableItems.length === 1 ? 'item' : 'items'} to check out.
+              </p>
+            )}
             <button
               onClick={proceedToCheckout}
+              disabled={unavailableItems.length > 0}
               className="btn-primary"
-              style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}
+              style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', opacity: unavailableItems.length > 0 ? 0.5 : 1, cursor: unavailableItems.length > 0 ? 'not-allowed' : 'pointer' }}
             >
               <span>Proceed to Checkout</span>
               <ArrowRight size={16} />
@@ -538,7 +564,7 @@ export default function CartDrawer() {
               }}
             >
               <ShieldCheck size={13} color="#1B4435" />
-              <span>Insured shipping • 100% Authentic Handloom</span>
+              <span>Insured shipping · 7-day easy returns</span>
             </div>
           </div>
         )}

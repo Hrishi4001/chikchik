@@ -1,54 +1,83 @@
 'use client';
 
 import React, { useState, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Filter, SlidersHorizontal, Grid3X3, Grid2X2, RotateCcw, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, Grid3X3, Grid2X2, RotateCcw, ChevronRight } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import ProductCard from '@/components/product/ProductCard';
+import { LEGAL } from '@/lib/legal';
+
+type SortKey = 'featured' | 'price-low' | 'price-high' | 'newest';
+
+const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'sarees', label: 'Sarees' },
+  { id: 'kurti-suits', label: 'Kurti Suits' }
+];
+
+const FABRICS = [
+  { id: 'all', label: 'All Fabrics', match: [] as string[] },
+  { id: 'silk', label: 'Silk', match: ['silk'] },
+  { id: 'crepe', label: 'Crepe', match: ['crepe'] },
+  { id: 'cotton', label: 'Cotton', match: ['cotton'] },
+  { id: 'rayon', label: 'Rayon / Viscose', match: ['rayon', 'viscose'] },
+  { id: 'georgette', label: 'Georgette', match: ['georgette'] }
+];
 
 function ShopContent() {
   const searchParams = useSearchParams();
-  const initialCategory = searchParams.get('category') || 'all';
+  const router = useRouter();
+  const pathname = usePathname();
 
   const { products } = useStore();
 
-  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory);
-  const [selectedFabric, setSelectedFabric] = useState<string>('all');
-  const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'featured' | 'price-low' | 'price-high' | 'rating' | 'newest'>('featured');
+  // Filters live in the URL so they survive back/forward, refresh and sharing
+  const categoryFilter = searchParams.get('category') || 'all';
+  const selectedFabric = searchParams.get('fabric') || 'all';
+  const selectedPriceRange = searchParams.get('price') || 'all';
+  const sortBy = (searchParams.get('sort') || 'featured') as SortKey;
+
+  const setParam = (key: string, value: string, fallback: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (value === fallback) next.delete(key);
+    else next.set(key, value);
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+  const setCategoryFilter = (v: string) => setParam('category', v, 'all');
+  const setSelectedFabric = (v: string) => setParam('fabric', v, 'all');
+  const setSelectedPriceRange = (v: string) => setParam('price', v, 'all');
+  const setSortBy = (v: SortKey) => setParam('sort', v, 'featured');
+
   const [columns, setColumns] = useState<2 | 3 | 4>(3);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-
-  // Available fabrics
-  const fabrics = ['all', 'Pure Tissue Organza', 'Pure Mulberry Raw Silk', 'Pure 100% Katan Mulberry Silk', 'Pure Silk Georgette'];
 
   // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
     return products
       .filter((p) => {
         if (categoryFilter !== 'all' && p.category !== categoryFilter) return false;
-        if (selectedFabric !== 'all' && !p.fabric.toLowerCase().includes(selectedFabric.toLowerCase().replace('pure ', ''))) return false;
+        const fabric = FABRICS.find((f) => f.id === selectedFabric);
+        if (fabric && fabric.match.length && !fabric.match.some((m) => p.fabric.toLowerCase().includes(m))) return false;
         if (selectedPriceRange === 'under-1k' && p.price >= 1000) return false;
         if (selectedPriceRange === '1k-2k' && (p.price < 1000 || p.price > 2000)) return false;
         if (selectedPriceRange === 'above-2k' && p.price <= 2000) return false;
         return true;
       })
       .sort((a, b) => {
+        // Sold-out pieces always sink below available ones
+        const stock = Number(b.inStock && b.stockCount > 0) - Number(a.inStock && a.stockCount > 0);
+        if (stock) return stock;
         if (sortBy === 'price-low') return a.price - b.price;
         if (sortBy === 'price-high') return b.price - a.price;
-        if (sortBy === 'rating') return b.rating - a.rating;
         if (sortBy === 'newest') return (b.isNewArrival ? 1 : 0) - (a.isNewArrival ? 1 : 0);
-        return (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0);
+        return (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0) || (b.isNewArrival ? 1 : 0) - (a.isNewArrival ? 1 : 0);
       });
   }, [products, categoryFilter, selectedFabric, selectedPriceRange, sortBy]);
 
-  const resetFilters = () => {
-    setCategoryFilter('all');
-    setSelectedFabric('all');
-    setSelectedPriceRange('all');
-    setSortBy('featured');
-  };
+  const resetFilters = () => router.replace(pathname, { scroll: false });
+  const categoryLabel = CATEGORIES.find((c) => c.id === categoryFilter)?.label ?? categoryFilter;
 
   return (
     <div className="container" style={{ paddingTop: '2.5rem', paddingBottom: '5rem' }}>
@@ -56,8 +85,8 @@ function ShopContent() {
       <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
         <Link href="/" style={{ color: 'var(--text-secondary)' }}>Home</Link>
         <ChevronRight size={12} />
-        <span style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>
-          {categoryFilter === 'all' ? 'All Collections' : categoryFilter}
+        <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+          {categoryFilter === 'all' ? 'All Collections' : categoryLabel}
         </span>
       </nav>
 
@@ -77,13 +106,10 @@ function ShopContent() {
       >
         {/* Category Quick Pills */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }} className="category-pills">
-          {[
-            { id: 'all', label: 'All Silhouettes' },
-            { id: 'sarees', label: 'Sarees' },
-            { id: 'kurti-suits', label: 'Kurti Suits' }
-          ].map((tab) => (
+          {CATEGORIES.map((tab) => (
             <button
               key={tab.id}
+              aria-pressed={categoryFilter === tab.id}
               onClick={() => setCategoryFilter(tab.id)}
               style={{
                 padding: '0.4rem 0.9rem',
@@ -123,7 +149,7 @@ function ShopContent() {
           </button>
 
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Showing <strong>{filteredProducts.length}</strong> creations
+            <strong>{filteredProducts.length}</strong> {filteredProducts.length === 1 ? 'product' : 'products'}
           </span>
 
           {/* Sort Dropdown */}
@@ -131,7 +157,8 @@ function ShopContent() {
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Sort:</span>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as SortKey)}
+              aria-label="Sort products"
               style={{
                 padding: '0.4rem 0.8rem',
                 fontSize: '0.78rem',
@@ -143,11 +170,10 @@ function ShopContent() {
                 cursor: 'pointer'
               }}
             >
-              <option value="featured">Featured / Bestsellers</option>
+              <option value="featured">Featured</option>
               <option value="newest">New Arrivals</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
-              <option value="rating">Patron Rating</option>
             </select>
           </div>
 
@@ -207,7 +233,7 @@ function ShopContent() {
           {/* Price Range Filter */}
           <div>
             <h4 style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem' }}>
-              Price Band
+              Price
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.82rem' }}>
               {[
@@ -233,16 +259,10 @@ function ShopContent() {
           {/* Fabric Weave Filter */}
           <div>
             <h4 style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem' }}>
-              Artisanal Fabric
+              Fabric
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.82rem' }}>
-              {[
-                { id: 'all', label: 'All Handloom Fabrics' },
-                { id: 'silk', label: 'Silk' },
-                { id: 'crepe', label: 'Crepe' },
-                { id: 'cotton', label: 'Cotton' },
-                { id: 'georgette', label: 'Georgette' }
-              ].map((fab) => (
+              {FABRICS.map((fab) => (
                 <label key={fab.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                   <input
                     type="radio"
@@ -259,8 +279,8 @@ function ShopContent() {
 
           {/* Craft Provenance Note */}
           <div className="tailoring-note" style={{ padding: '1.25rem', backgroundColor: '#F9F7F3', borderRadius: '6px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>Bespoke Tailoring</p>
-            <p>Every piece includes custom measurement assistance. Blouse tailoring is available on all sarees.</p>
+            <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>Need help choosing?</p>
+            <p>WhatsApp us at {LEGAL.whatsapp} for advice on fit, fabric and styling.</p>
           </div>
         </aside>
 
@@ -269,13 +289,13 @@ function ShopContent() {
           {filteredProducts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 1rem', backgroundColor: '#FFFFFF', borderRadius: '8px' }}>
               <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.6rem', marginBottom: '0.5rem' }}>
-                No creations match the selected criteria
+                No products match these filters
               </h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                Try adjusting your price band or fabric selection.
+                Try a different price range or fabric.
               </p>
               <button onClick={resetFilters} className="btn-primary">
-                View All Creations
+                Clear filters
               </button>
             </div>
           ) : (
@@ -363,7 +383,7 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>Loading Atelier Catalog...</div>}>
+    <Suspense fallback={<div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>Loading…</div>}>
       <ShopContent />
     </Suspense>
   );

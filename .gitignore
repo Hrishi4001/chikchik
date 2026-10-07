@@ -56,3 +56,6 @@ plugins/
 /playwright-report/
 /test-results/
 /blob-report/
+
+# visitor analytics / leads store
+/data/

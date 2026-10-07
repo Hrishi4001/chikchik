@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const VALUES = [
   { title: 'Comfort First', body: 'Breathable fabrics and easy, considered fits you can wear from morning errands to evening celebrations.' },
   { title: 'Timeless Craft', body: 'Handpicked prints, weaves and finishing details that honour Indian textile traditions without feeling dated.' },
-  { title: 'Made to Fit You', body: 'Sizes from XS to 4XL, plus a Custom Fit option tailored to your measurements.' },
+  { title: 'Made to Fit You', body: 'Kurti suits from S to 3XL and free-size sarees, with personal fit help on WhatsApp.' },
   { title: 'Honest Quality', body: 'Every piece is quality-checked and carefully packed before it leaves us, so it arrives exactly as you expect.' },
 ];
 
