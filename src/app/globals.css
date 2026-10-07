@@ -1520,12 +1520,21 @@ img {
   .insta-viewport { --insta-cols: 2; padding: 0 8px; }
 }
 
-/* Home Kurti Suits marquee (reuses the Instagram track animation) */
-.product-marquee-item {
+/* Home Kurti Suits / Sarees rows: static, manually swipeable */
+.product-row-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.product-row-track::-webkit-scrollbar { display: none; }
+.product-row-item {
   flex: 0 0 calc(100cqw / var(--insta-cols));
   padding: 0 8px;
+  scroll-snap-align: start;
 }
-.product-marquee:active .insta-track { animation-play-state: paused; }
 
 /* FAQ accordion */
 .faq-item { border-bottom: 1px solid var(--border-subtle); }

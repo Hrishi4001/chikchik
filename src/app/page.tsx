@@ -21,10 +21,10 @@ export default function HomePage() {
   // Carousel 1: New Arrivals
   const carousel1Products = byStock.filter((p) => p.isNewArrival).concat(byStock.filter((p) => !p.isNewArrival)).slice(0, 12);
 
-  // Carousel 2: Kurti Suits marquee
+  // Carousel 2: Kurti Suits row
   const kurtiSuits = byStock.filter((p) => p.category === 'kurti-suits').slice(0, 12);
 
-  // Carousel 3: Sarees marquee
+  // Carousel 3: Sarees row
   const sarees = byStock.filter((p) => p.category === 'sarees').slice(0, 12);
 
   // Bento: a large saree beside two smaller pieces, drawn from beyond the carousels.
@@ -393,7 +393,7 @@ export default function HomePage() {
 
       {/* ========================================================
           SECTION 4: KURTI SUITS
-          Continuous marquee, same motion as the Instagram strip
+          Swipeable product row (no auto-scroll)
           ======================================================== */}
       <section
         style={{
@@ -418,7 +418,7 @@ export default function HomePage() {
           </h2>
         </div>
 
-        <ProductMarquee products={kurtiSuits} />
+        <ProductRow products={kurtiSuits} />
 
         <div className="container">
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
@@ -434,7 +434,7 @@ export default function HomePage() {
 
       {/* ========================================================
           SECTION 4B: SAREES
-          Continuous marquee, same motion as the Instagram strip
+          Swipeable product row (no auto-scroll)
           ======================================================== */}
       {sarees.length > 0 && (
       <section
@@ -460,7 +460,7 @@ export default function HomePage() {
           </h2>
         </div>
 
-        <ProductMarquee products={sarees} />
+        <ProductRow products={sarees} />
 
         <div className="container">
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
@@ -613,18 +613,13 @@ function InstagramIcon({ size = 26 }: { size?: number }) {
   );
 }
 
-// Product cards on the same continuous marquee as the Instagram strip.
-function ProductMarquee({ products }: { products: Product[] }) {
+// Product cards in a static row; swipe/scroll horizontally to see more.
+function ProductRow({ products }: { products: Product[] }) {
   return (
-    <div className="insta-viewport product-marquee">
-      <div className="insta-track" style={{ animationDuration: `${products.length * 8}s` }}>
-        {[...products, ...products].map((p, i) => (
-          <div
-            key={`${p.id}-${i}`}
-            className="product-marquee-item"
-            aria-hidden={i >= products.length || undefined}
-            inert={i >= products.length || undefined}
-          >
+    <div className="insta-viewport product-row">
+      <div className="product-row-track">
+        {products.map((p) => (
+          <div key={p.id} className="product-row-item">
             <ProductCard product={p} />
           </div>
         ))}
