@@ -300,6 +300,7 @@ function ProductView({ product }: { product: Product }) {
             </Link>
             <button 
               onClick={handleShare}
+              className="pdp-share-btn"
               style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', color: '#666666' }}
               title="Share creation"
             >
@@ -343,7 +344,7 @@ function ProductView({ product }: { product: Product }) {
               )}
             </div>
             <p className="product-taxes-notice">
-              Inclusive of all taxes. Free shipping in India on orders above {formatPrice(LEGAL.freeShippingThreshold)}.
+              Inclusive of all taxes. Free shipping in India on orders above {formatPrice(LEGAL.freeShippingThreshold)}, otherwise {formatPrice(LEGAL.standardShippingFee)}.
             </p>
           </div>
 
@@ -664,7 +665,7 @@ function ProductView({ product }: { product: Product }) {
                 onClick={() => toggleAccordion('reviews')}
                 aria-expanded={openAccordions.reviews}
               >
-                <span>Reviews ({allReviews.length})</span>
+                <span>{allReviews.length > 0 ? `Reviews (${allReviews.length})` : 'Write a review'}</span>
                 <span className={`openform-accordion-icon ${openAccordions.reviews ? 'is-open' : ''}`}>
                   <Plus size={16} />
                 </span>

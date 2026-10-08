@@ -17,7 +17,7 @@ function SizeTable({ unit }: { unit: 'in' | 'cm' }) {
   const fmt = (n: number) => (unit === 'in' ? `${n}"` : `${cm(n)}`);
   return (
     <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
-      <table style={{ width: '100%', minWidth: '420px', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'center' }}>
+      <table style={{ width: '100%', minWidth: '320px', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'center' }}>
         <caption style={{ textAlign: 'left', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', paddingBottom: '0.5rem' }}>
           Garment measurements ({unit === 'in' ? 'inches' : 'centimetres'})
         </caption>

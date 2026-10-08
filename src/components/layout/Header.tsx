@@ -9,9 +9,11 @@ import {
   Search, 
   Menu, 
   X, 
-  ChevronDown
+  ChevronDown,
+  MessageCircle
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
+import { LEGAL } from '@/lib/legal';
 
 export default function Header() {
   const pathname = usePathname();
@@ -376,7 +378,7 @@ export default function Header() {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingLeft: '0.5rem' }}>
                 {shopSubmenu.categories.map((c) => (
-                  <Link key={c.label} href={c.href} style={{ fontSize: '0.92rem', color: '#580F00' }}>
+                  <Link key={c.label} href={c.href} style={{ fontSize: '0.92rem', color: '#580F00', padding: '0.35rem 0' }}>
                     {c.label}
                   </Link>
                 ))}
@@ -388,6 +390,34 @@ export default function Header() {
                 <Heart size={18} strokeWidth={1.7} /> Wishlist{wishlist.length > 0 ? ` (${wishlist.length})` : ''}
               </Link>
             </div>
+
+            <div style={{ borderTop: '1px solid #EBEBEB', paddingTop: '1rem' }}>
+              <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.75rem', letterSpacing: '0.12em', color: '#580F00', opacity: 0.8, textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 600 }}>
+                HELP
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingLeft: '0.5rem' }}>
+                {[
+                  { label: 'Size Guide', href: '/pages/size-chart' },
+                  { label: 'Shipping & Delivery', href: '/pages/shipping-policy' },
+                  { label: 'Returns & Exchange', href: '/pages/return-exchange-policy' },
+                  { label: 'FAQ', href: '/pages/faq' },
+                  { label: 'Contact Us', href: '/pages/contact-us' }
+                ].map((l) => (
+                  <Link key={l.href} href={l.href} style={{ fontSize: '0.92rem', color: '#580F00', padding: '0.35rem 0' }}>
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <a
+              href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', minHeight: '48px', borderRadius: '999px', border: '1px solid #580F00', color: '#580F00', fontSize: '0.85rem', letterSpacing: '0.05em' }}
+            >
+              <MessageCircle size={18} strokeWidth={1.7} /> Chat on WhatsApp
+            </a>
           </div>
         )}
       </header>

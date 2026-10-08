@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { SlidersHorizontal, Grid3X3, Grid2X2, RotateCcw, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, Grid3X3, Grid2X2, RotateCcw, ChevronRight, X } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import ProductCard from '@/components/product/ProductCard';
 import { LEGAL } from '@/lib/legal';
@@ -25,6 +25,9 @@ const FABRICS = [
   { id: 'georgette', label: 'Georgette', match: ['georgette'] }
 ];
 
+const PAGE_SIZE = 24;
+const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL'];
+
 function ShopContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -36,6 +39,7 @@ function ShopContent() {
   const categoryFilter = searchParams.get('category') || 'all';
   const selectedFabric = searchParams.get('fabric') || 'all';
   const selectedPriceRange = searchParams.get('price') || 'all';
+  const selectedSize = searchParams.get('size') || 'all';
   const sortBy = (searchParams.get('sort') || 'featured') as SortKey;
 
   const setParam = (key: string, value: string, fallback: string) => {
@@ -48,10 +52,23 @@ function ShopContent() {
   const setCategoryFilter = (v: string) => setParam('category', v, 'all');
   const setSelectedFabric = (v: string) => setParam('fabric', v, 'all');
   const setSelectedPriceRange = (v: string) => setParam('price', v, 'all');
+  const setSelectedSize = (v: string) => setParam('size', v, 'all');
   const setSortBy = (v: SortKey) => setParam('sort', v, 'featured');
 
   const [columns, setColumns] = useState<2 | 3 | 4>(3);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  // Paging restarts whenever the filters or sort change
+  const filterKey = searchParams.toString();
+  const [paging, setPaging] = useState({ key: filterKey, count: PAGE_SIZE });
+  const visibleCount = paging.key === filterKey ? paging.count : PAGE_SIZE;
+
+  const sizeOptions = useMemo(() => {
+    const all = new Set(products.flatMap((p) => p.sizes));
+    return [...all].sort((a, b) => {
+      const ia = SIZE_ORDER.indexOf(a), ib = SIZE_ORDER.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+    });
+  }, [products]);
 
   // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
@@ -60,6 +77,7 @@ function ShopContent() {
         if (categoryFilter !== 'all' && p.category !== categoryFilter) return false;
         const fabric = FABRICS.find((f) => f.id === selectedFabric);
         if (fabric && fabric.match.length && !fabric.match.some((m) => p.fabric.toLowerCase().includes(m))) return false;
+        if (selectedSize !== 'all' && !p.sizes.includes(selectedSize)) return false;
         if (selectedPriceRange === 'under-1k' && p.price >= 1000) return false;
         if (selectedPriceRange === '1k-2k' && (p.price < 1000 || p.price > 2000)) return false;
         if (selectedPriceRange === 'above-2k' && p.price <= 2000) return false;
@@ -74,7 +92,15 @@ function ShopContent() {
         if (sortBy === 'newest') return (b.isNewArrival ? 1 : 0) - (a.isNewArrival ? 1 : 0);
         return (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0) || (b.isNewArrival ? 1 : 0) - (a.isNewArrival ? 1 : 0);
       });
-  }, [products, categoryFilter, selectedFabric, selectedPriceRange, sortBy]);
+  }, [products, categoryFilter, selectedFabric, selectedPriceRange, selectedSize, sortBy]);
+
+  // Mobile filter sheet locks page scroll while open
+  useEffect(() => {
+    if (!isMobileFilterOpen || !window.matchMedia('(max-width: 600px)').matches) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isMobileFilterOpen]);
 
   const resetFilters = () => router.replace(pathname, { scroll: false });
   const categoryLabel = CATEGORIES.find((c) => c.id === categoryFilter)?.label ?? categoryFilter;
@@ -212,7 +238,14 @@ function ShopContent() {
         {/* Sidebar Filters */}
         <aside style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }} className={`shop-sidebar${isMobileFilterOpen ? ' is-open' : ''}`}>
           {/* Active filter count & reset */}
-          {(categoryFilter !== 'all' || selectedFabric !== 'all' || selectedPriceRange !== 'all') && (
+          <div className="filter-sheet-head">
+            <span>Filters</span>
+            <button onClick={() => setIsMobileFilterOpen(false)} aria-label="Close filters">
+              <X size={20} />
+            </button>
+          </div>
+
+          {(categoryFilter !== 'all' || selectedFabric !== 'all' || selectedPriceRange !== 'all' || selectedSize !== 'all') && (
             <button
               onClick={resetFilters}
               className="reset-filters-btn"
@@ -256,6 +289,36 @@ function ShopContent() {
             </div>
           </div>
 
+          {/* Size Filter */}
+          {sizeOptions.length > 0 && (
+            <div className="size-filter">
+              <h4 style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem' }}>
+                Size
+              </h4>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {sizeOptions.map((size) => (
+                  <button
+                    key={size}
+                    aria-pressed={selectedSize === size}
+                    onClick={() => setSelectedSize(selectedSize === size ? 'all' : size)}
+                    style={{
+                      minWidth: '44px',
+                      minHeight: '36px',
+                      padding: '0 0.6rem',
+                      fontSize: '0.78rem',
+                      borderRadius: '4px',
+                      border: `1px solid ${selectedSize === size ? '#580F00' : 'var(--border-medium)'}`,
+                      backgroundColor: selectedSize === size ? '#580F00' : '#FFFFFF',
+                      color: selectedSize === size ? '#FFFFFF' : 'var(--text-primary)'
+                    }}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Fabric Weave Filter */}
           <div>
             <h4 style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem' }}>
@@ -282,7 +345,12 @@ function ShopContent() {
             <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>Need help choosing?</p>
             <p>WhatsApp us at {LEGAL.whatsapp} for advice on fit, fabric and styling.</p>
           </div>
+
+          <button className="btn-primary filter-sheet-apply" onClick={() => setIsMobileFilterOpen(false)}>
+            Show {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
+          </button>
         </aside>
+        {isMobileFilterOpen && <div className="filter-sheet-backdrop" onClick={() => setIsMobileFilterOpen(false)} />}
 
         {/* Product Cards Grid */}
         <main>
@@ -307,9 +375,19 @@ function ShopContent() {
               }}
               className="product-items-grid"
             >
-              {filteredProducts.map((prod) => (
+              {filteredProducts.slice(0, visibleCount).map((prod) => (
                 <ProductCard key={prod.id} product={prod} />
               ))}
+            </div>
+          )}
+          {filteredProducts.length > visibleCount && (
+            <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                Showing {visibleCount} of {filteredProducts.length}
+              </p>
+              <button className="btn-secondary" onClick={() => setPaging({ key: filterKey, count: visibleCount + PAGE_SIZE })}>
+                Load more
+              </button>
             </div>
           )}
         </main>
@@ -373,7 +451,73 @@ function ShopContent() {
             gap: 1.75rem 0.85rem !important;
           }
         }
-        .mobile-filter-btn {
+        @media (max-width: 600px) {
+          .shop-sidebar.is-open {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1001;
+            display: flex !important;
+            flex-direction: column;
+            gap: 1.5rem !important;
+            max-height: 85dvh;
+            overflow-y: auto;
+            padding: 0 1.25rem calc(1rem + env(safe-area-inset-bottom));
+            background: #FFFFFF;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.15);
+            border-bottom: none;
+            animation: slideInUp 0.25s var(--ease-luxury) forwards;
+          }
+          .shop-sidebar.is-open label {
+            min-height: 36px;
+          }
+          .filter-sheet-head {
+            display: flex !important;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0 0.75rem;
+            margin-bottom: -0.75rem;
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .filter-sheet-head button {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+          }
+          .filter-sheet-apply {
+            display: block !important;
+            position: sticky;
+            bottom: 0;
+            width: 100%;
+          }
+          .filter-sheet-backdrop {
+            display: block !important;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.4);
+          }
+          .mobile-filter-btn,
+          .shop-tools select {
+            min-height: 40px;
+          }
+        }
+        .mobile-filter-btn,
+        .filter-sheet-head,
+        .filter-sheet-apply,
+        .filter-sheet-backdrop {
           display: none;
         }
       `}</style>

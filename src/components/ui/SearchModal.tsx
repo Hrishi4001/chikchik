@@ -24,14 +24,12 @@ export default function SearchModal() {
         );
       });
 
-  const popularSearches = [
-    'Tissue Organza Saree',
-    'Terracotta Silk Kurta',
-    'Banarasi Katan',
-    'Emerald Bridal Lehenga',
-    'Chanderi Silk',
-    'Ivory Anarkali'
-  ];
+  // Suggest only fabrics that are actually in the catalogue, most-stocked first
+  const fabricCounts = products.reduce<Record<string, number>>((acc, p) => {
+    if (p.fabric) acc[p.fabric] = (acc[p.fabric] || 0) + 1;
+    return acc;
+  }, {});
+  const popularSearches = ['Saree', 'Kurti', ...Object.keys(fabricCounts).sort((a, b) => fabricCounts[b] - fabricCounts[a]).slice(0, 6)];
 
   return (
     <div className="modal-backdrop" onClick={() => setIsSearchOpen(false)}>
@@ -65,7 +63,8 @@ export default function SearchModal() {
           <Search size={22} color="var(--text-secondary)" />
           <input
             type="text"
-            placeholder="Search by fabric, craft, collection or silhouette..."
+            placeholder="Search sarees, kurtis, fabrics…"
+            aria-label="Search products"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             autoFocus
@@ -74,18 +73,21 @@ export default function SearchModal() {
               border: 'none',
               backgroundColor: 'transparent',
               fontSize: '1.05rem',
+              minWidth: 0,
               color: 'var(--text-primary)',
               outline: 'none',
               fontFamily: 'var(--font-sans)'
             }}
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{ color: 'var(--text-muted)' }}>
+            <button onClick={() => setSearchQuery('')} aria-label="Clear search" style={{ color: 'var(--text-muted)', padding: '0.5rem', margin: '-0.5rem' }}>
               <X size={18} />
             </button>
           )}
           <button
             onClick={() => setIsSearchOpen(false)}
+            className="search-close-btn"
+            aria-label="Close search"
             style={{
               padding: '0.4rem 0.8rem',
               fontSize: '0.78rem',
@@ -95,7 +97,8 @@ export default function SearchModal() {
               borderRadius: '4px'
             }}
           >
-            Esc
+            <span className="search-close-label">Esc</span>
+            <X size={20} className="search-close-icon" />
           </button>
         </div>
 
@@ -112,7 +115,7 @@ export default function SearchModal() {
                   marginBottom: '1rem'
                 }}
               >
-                Trending Silhouettes & Crafts
+                Popular searches
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
                 {popularSearches.map((term) => (

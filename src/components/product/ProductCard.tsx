@@ -14,7 +14,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { formatPrice, addToCart } = useStore();
+  const { formatPrice, addToCart, setQuickViewProduct } = useStore();
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -103,7 +103,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           />
         </Link>
 
-        {/* Add to Cart: square icon button (adds directly when only one size, otherwise opens product page to pick a size) */}
+        {/* Add to Cart: square icon button (adds directly when only one size, otherwise opens quick view to pick a size) */}
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -111,7 +111,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             if (product.sizes.length === 1) {
               addToCart(product, product.sizes[0]);
             } else {
-              router.push(`/product/${product.slug}`);
+              setQuickViewProduct(product);
             }
           }}
           hidden={isSoldOut}
@@ -172,7 +172,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         {cardReviews.length > 0 && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', color: '#5C5852' }}>
             <Star size={13} fill="#C08A2E" color="#C08A2E" />
-            {rating.toFixed(1)} <span style={{ color: '#9A8F86' }}>({cardReviews.length})</span>
+            {rating.toFixed(1)} <span style={{ color: '#736960' }}>({cardReviews.length})</span>
           </span>
         )}
 
@@ -208,7 +208,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           style={{
             fontFamily: 'var(--font-body-family)',
             fontSize: '0.82rem',
-            color: '#9A8F86',
+            color: '#736960',
             margin: '0.15rem 0 0'
           }}
         >

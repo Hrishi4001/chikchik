@@ -48,7 +48,9 @@ export default function PhoneCapture() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     // Shown after a long browse, or when a desktop visitor heads for the address bar — never mid-tap on a phone
     const show = () => {
-      if (getConsent()?.marketing && !snoozed()) setOpen(true);
+      // On phones, never cover a product page mid-decision; wait for a browsing page instead
+      const onPhonePdp = window.matchMedia('(pointer: coarse)').matches && window.location.pathname.startsWith('/product');
+      if (getConsent()?.marketing && !snoozed() && !onPhonePdp) setOpen(true);
     };
     const schedule = () => {
       clearTimeout(timer);

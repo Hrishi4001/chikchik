@@ -1785,3 +1785,78 @@ img {
   }
   .review-card { flex: 0 0 85%; scroll-snap-align: start; }
 }
+
+/* ---------- Mobile usability ---------- */
+.search-close-icon {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* iOS Safari zooms into any field under 16px; keep forms steady */
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .hide-on-mobile {
+    display: none;
+  }
+
+  /* Header icons get a 44px thumb target without changing their look */
+  .mobile-only-btn,
+  .header-icons > button,
+  .header-icons > a {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .mobile-only-btn {
+    margin-left: -11px;
+  }
+  .header-icons {
+    gap: 0 !important;
+    margin-right: -11px;
+  }
+
+  /* Search: touch close button instead of a keyboard "Esc" hint */
+  .search-close-btn {
+    width: 44px;
+    height: 44px;
+    margin: -0.5rem -0.75rem -0.5rem 0;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+  }
+  .search-close-label {
+    display: none;
+  }
+  .search-close-icon {
+    display: block;
+  }
+
+  /* Product page small controls */
+  .gallery-dots {
+    gap: 0.75rem;
+  }
+  .gallery-dots button {
+    position: relative;
+  }
+  .gallery-dots button::before {
+    content: '';
+    position: absolute;
+    inset: -18px -8px;
+  }
+  .pdp-share-btn {
+    min-height: 44px;
+    padding: 0 0 0 0.75rem;
+  }
+  .size-guide-trigger-link {
+    min-height: 44px;
+    padding: 0.5rem 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
