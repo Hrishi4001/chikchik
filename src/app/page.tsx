@@ -580,7 +580,7 @@ export default function HomePage() {
         </div>
         <InstagramCarousel posts={instagramPosts} />
         <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-          <a href={INSTAGRAM_PROFILE_URL} target="_blank" rel="noopener noreferrer" className="insta-follow">
+          <a href={INSTAGRAM_PROFILE_URL} className="insta-follow">
             <InstagramIcon size={16} /> Follow @hevaelegance
           </a>
         </div>
@@ -639,8 +639,6 @@ function InstagramCarousel({ posts }: { posts: Product[] }) {
           <a
             key={`${p.id}-${i}`}
             href={INSTAGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
             className="insta-tile"
             aria-label={`View ${p.title} on Instagram`}
             aria-hidden={i >= posts.length || undefined}

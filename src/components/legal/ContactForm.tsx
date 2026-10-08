@@ -29,7 +29,7 @@ export default function ContactForm() {
       form.message,
     ].filter(Boolean).join('\n');
     const phone = LEGAL.whatsapp.replace(/\D/g, '');
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
   };
 
   return (

@@ -450,8 +450,6 @@ function ProductView({ product }: { product: Product }) {
               <a
                 className="btn-buy-now"
                 href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi! Please let me know when "${product.title}" is back in stock.`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 Notify me on WhatsApp
@@ -651,7 +649,7 @@ function ProductView({ product }: { product: Product }) {
                 <div className="openform-accordion-body">
                   <p style={{ marginBottom: '0.6rem' }}>
                     Questions about fit, fabric or delivery? WhatsApp us at{' '}
-                    <a href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>{LEGAL.whatsapp}</a>{' '}
+                    <a href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}`} style={{ textDecoration: 'underline' }}>{LEGAL.whatsapp}</a>{' '}
                     or email <a href={`mailto:${LEGAL.email}`} style={{ textDecoration: 'underline' }}>{LEGAL.email}</a>. We reply within one business day.
                   </p>
                 </div>

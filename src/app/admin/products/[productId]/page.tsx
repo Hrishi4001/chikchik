@@ -30,7 +30,7 @@ export default function EditProductPage() {
         title={product.title}
         subtitle={product.categoryLabel}
         actions={
-          <Link href={`/product/${product.slug}`} target="_blank" className={styles.btn}>
+          <Link href={`/product/${product.slug}`} className={styles.btn}>
             View in store <ExternalLink size={14} />
           </Link>
         }

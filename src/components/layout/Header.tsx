@@ -412,8 +412,6 @@ export default function Header() {
 
             <a
               href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
               style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', minHeight: '48px', borderRadius: '999px', border: '1px solid #580F00', color: '#580F00', fontSize: '0.85rem', letterSpacing: '0.05em' }}
             >
               <MessageCircle size={18} strokeWidth={1.7} /> Chat on WhatsApp

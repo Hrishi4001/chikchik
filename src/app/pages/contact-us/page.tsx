@@ -30,7 +30,7 @@ export default function ContactUsPage() {
             <Icon size={18} aria-hidden />
             <div style={{ fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0.6rem 0 0.25rem' }}>{label}</div>
             {href ? (
-              <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer" style={{ fontWeight: 500, wordBreak: 'break-word' }}>{value}</a>
+              <a href={href} style={{ fontWeight: 500, wordBreak: 'break-word' }}>{value}</a>
             ) : (
               <span style={{ fontWeight: 500 }}>{value}</span>
             )}
