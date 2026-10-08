@@ -16,21 +16,22 @@ import {
   Tag
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
-import { Order, PaymentAttempt, UserAddress } from '@/lib/types';
-import { CART_MILESTONES, STANDARD_SHIPPING_FEE, getCartRewards } from '@/lib/cartRewards';
+import type { Order } from '@/lib/types';
+import { CART_MILESTONES, COD_LIMIT, EXPRESS_SHIPPING_FEE, STANDARD_SHIPPING_FEE, computeTotals, getCartRewards } from '@/lib/cartRewards';
 import {
-  createGatewayOrder,
   openRazorpayCheckout,
   PaymentError,
+  placeServerOrder,
+  reportPaymentFailure,
+  retryOrderPayment,
   verifyGatewayPayment,
+  type GatewayOrderResponse,
   type GatewaySuccess
 } from '@/lib/payments/client';
 import MockPaymentSheet, { type MockOutcome } from '@/components/checkout/MockPaymentSheet';
 
 type Step = 1 | 2 | 3;
 type PayOption = 'online' | 'COD';
-
-const COD_LIMIT = 50000;
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#FFFFFF',
@@ -60,17 +61,13 @@ export default function CheckoutPage() {
   const {
     cart,
     cartSubtotal,
-    cartDiscount,
-    promoDiscount,
-    milestoneDiscount,
     promoCode,
     applyPromoCode,
     removePromoCode,
     unavailableItems,
     removeFromCart,
     formatPrice,
-    createOrder,
-    updateOrder,
+    recordOrder,
     commitOrderStock,
     clearCart,
     checkPincode,
@@ -98,13 +95,12 @@ export default function CheckoutPage() {
   const [promoInput, setPromoInput] = useState('');
   const [mockSheet, setMockSheet] = useState<{ orderNumber: string; resolve: (r: MockOutcome) => void } | null>(null);
 
-  // A pending order is reused across payment retries so failed attempts stay on one order record.
-  const pendingOrderRef = useRef<{ order: Order; cartKey: string } | null>(null);
+  // A server order awaiting payment is reused across retries so failed attempts stay on one order record.
+  const pendingOrderRef = useRef<{ order: Order; checkoutKey: string } | null>(null);
 
   const pinInfo = /^\d{6}$/.test(pincode) ? checkPincode(pincode) : null;
   const hasStitching = cart.some((i) => i.selectedStitching && i.selectedStitching.price > 0);
-  const shippingCost = shippingMethod === 'express' ? 800 : getCartRewards(cartSubtotal).freeShipping ? 0 : STANDARD_SHIPPING_FEE;
-  const grandTotal = Math.max(0, cartSubtotal - cartDiscount + shippingCost);
+  const { promoDiscount, milestoneDiscount, shippingFee: shippingCost, total: grandTotal } = computeTotals(cartSubtotal, promoCode, shippingMethod);
   const codAvailable = !!pinInfo?.cod && grandTotal <= COD_LIMIT;
   const payOption: PayOption = codAvailable ? selectedPayOption : 'online';
   const transitDays = (pinInfo?.days ?? 4) + (shippingMethod === 'express' ? 0 : 2) + (hasStitching ? 5 : 0);
@@ -116,7 +112,7 @@ export default function CheckoutPage() {
     setPincode(clean);
     if (clean.length === 6) {
       const info = checkPincode(clean);
-      if (info.serviceable && info.city && info.city !== 'India Hub') {
+      if (info.serviceable && info.city) {
         setCity(info.city);
         setState(info.state || '');
       }
@@ -126,7 +122,7 @@ export default function CheckoutPage() {
   const validateContact = () => {
     const e: Record<string, string> = {};
     if (contactName.trim().length < 2) e.name = 'Enter your full name';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())) e.email = 'Enter a valid email address';
+    if (contactEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())) e.email = 'Enter a valid email address';
     if (contactPhone.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').length !== 10) e.phone = 'Enter a 10-digit mobile number';
     return e;
   };
@@ -163,10 +159,10 @@ export default function CheckoutPage() {
       <div className="container" style={{ padding: '6rem 0', textAlign: 'center' }}>
         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', marginBottom: '1rem' }}>Your Shopping Bag is Empty</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-          Please select your desired ethnic wear creations before proceeding to checkout.
+          Add a saree or kurti to your bag to check out.
         </p>
         <Link href="/shop" className="btn-primary">
-          Explore Haute Collections
+          Browse the collection
         </Link>
       </div>
     );
@@ -185,55 +181,8 @@ export default function CheckoutPage() {
       });
     });
 
-  const getOrCreatePendingOrder = (): Order => {
-    const cartKey = JSON.stringify([cart.map((i) => [i.id, i.quantity]), grandTotal]);
-    if (pendingOrderRef.current?.cartKey === cartKey) return pendingOrderRef.current.order;
-
-    const shippingAddress: UserAddress = {
-      id: `addr-${Date.now()}`,
-      fullName: contactName.trim(),
-      phone: contactPhone.trim(),
-      street: streetAddress.trim(),
-      apartment: apartment.trim(),
-      city: city.trim(),
-      state: state.trim(),
-      pincode,
-      country
-    };
-
-    const order = createOrder({
-      customerName: contactName.trim(),
-      customerEmail: contactEmail.trim(),
-      customerPhone: contactPhone.trim(),
-      shippingAddress,
-      items: cart.map((item) => ({
-        productId: item.product.id,
-        productTitle: item.product.title,
-        productImage: item.product.images[0],
-        category: item.product.categoryLabel,
-        size: item.selectedSize,
-        stitching: item.selectedStitching?.name,
-        quantity: item.quantity,
-        price: item.unitPrice
-      })),
-      subtotal: cartSubtotal,
-      discount: cartDiscount,
-      promoCode: promoCode || undefined,
-      shippingFee: shippingCost,
-      shippingMethod,
-      total: grandTotal,
-      currency: 'INR',
-      paymentMethod: payOption === 'COD' ? 'COD' : 'UPI',
-      paymentStatus: 'Pending',
-      payment: { provider: payOption === 'COD' ? 'cod' : 'razorpay', attempts: [] },
-      fulfillmentStatus: 'Processing',
-      estimatedDelivery: addDays(transitDays)
-    });
-    pendingOrderRef.current = { order, cartKey };
-    return order;
-  };
-
   const finish = (order: Order) => {
+    recordOrder(order);
     commitOrderStock(order);
     pendingOrderRef.current = null;
     setIsRedirecting(true);
@@ -259,35 +208,41 @@ export default function CheckoutPage() {
 
     setIsProcessing(true);
     setPaymentError(null);
-    const order = getOrCreatePendingOrder();
 
-    if (payOption === 'COD') {
-      updateOrder(
-        order.id,
-        (o) => ({ paymentMethod: 'COD', paymentStatus: 'Pending', payment: { ...(o.payment || { attempts: [] }), provider: 'cod' } }),
-        { label: 'Cash on Delivery order confirmed', note: 'Payment to be collected at delivery' }
-      );
+    const input = {
+      customer: { name: contactName.trim(), email: contactEmail.trim(), phone: contactPhone.trim() },
+      address: { street: streetAddress.trim(), apartment: apartment.trim(), city: city.trim(), state: state.trim(), pincode },
+      items: cart.map((item) => ({ productId: item.product.id, size: String(item.selectedSize), quantity: item.quantity })),
+      promoCode: promoCode || undefined,
+      shippingMethod,
+      paymentMethod: payOption === 'COD' ? ('COD' as const) : ('online' as const)
+    };
+    const checkoutKey = JSON.stringify(input);
+
+    let order: Order | undefined;
+    let gw: GatewayOrderResponse | undefined;
+    try {
+      const pending = pendingOrderRef.current;
+      if (pending?.checkoutKey === checkoutKey && payOption !== 'COD') {
+        ({ order, gateway: gw } = await retryOrderPayment(pending.order.id));
+      } else {
+        ({ order, gateway: gw } = await placeServerOrder(input));
+      }
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'We could not place your order. Please try again.');
+      setIsProcessing(false);
+      return;
+    }
+
+    if (!gw) {
       setIsProcessing(false);
       finish(order);
       return;
     }
+    pendingOrderRef.current = { order, checkoutKey };
 
-    const attemptId = `att-${Date.now()}`;
-    let gatewayOrderId: string | undefined;
     try {
-      const gw = await createGatewayOrder({
-        amount: grandTotal,
-        receipt: order.orderNumber,
-        customer: { name: contactName, email: contactEmail, phone: contactPhone }
-      });
-      gatewayOrderId = gw.gatewayOrderId;
-
-      const attempt: PaymentAttempt = { id: attemptId, at: new Date().toISOString(), status: 'Created', gatewayOrderId };
-      updateOrder(order.id, (o) => ({
-        payment: { ...o.payment!, provider: gw.mode, gatewayOrderId, attempts: [...(o.payment?.attempts || []), attempt] }
-      }));
-
-      const result =
+      const result: GatewaySuccess =
         gw.mode === 'razorpay' && gw.keyId
           ? await openRazorpayCheckout({
               keyId: gw.keyId,
@@ -299,51 +254,24 @@ export default function CheckoutPage() {
           : await askMockGateway(order.orderNumber);
 
       const verified = await verifyGatewayPayment({
+        orderId: order.id,
         gatewayOrderId: gw.gatewayOrderId,
         paymentId: result.paymentId,
         signature: result.signature,
-        mockOutcome: gw.mode === 'mock' ? 'success' : undefined
+        mockOutcome: gw.mode === 'mock' ? 'success' : undefined,
+        mockMethod: gw.mode === 'mock' ? result.method : undefined
       });
-      const method = verified.method || result.method || 'UPI';
-      const paidAt = new Date().toISOString();
-
-      updateOrder(
-        order.id,
-        (o) => ({
-          paymentStatus: 'Paid',
-          paymentMethod: method,
-          payment: {
-            ...o.payment!,
-            gatewayPaymentId: verified.paymentId,
-            paidAt,
-            attempts: (o.payment?.attempts || []).map((a) =>
-              a.id === attemptId ? { ...a, status: 'Captured', gatewayPaymentId: verified.paymentId, method } : a
-            )
-          }
-        }),
-        { label: 'Payment captured', note: `${method} · ${verified.paymentId}` }
-      );
       setIsProcessing(false);
-      finish(order);
+      finish(verified.order);
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'Payment could not be completed';
       const dismissed = err instanceof PaymentError && err.dismissed;
-      const failedPaymentId = err instanceof PaymentError ? err.paymentId : undefined;
-      updateOrder(
-        order.id,
-        (o) => {
-          const attempts = o.payment?.attempts || [];
-          const failed: PaymentAttempt = { id: attemptId, at: new Date().toISOString(), status: 'Failed', gatewayOrderId, gatewayPaymentId: failedPaymentId, reason };
-          return {
-            paymentStatus: 'Failed',
-            payment: {
-              ...(o.payment || { provider: 'razorpay' }),
-              attempts: attempts.some((a) => a.id === attemptId) ? attempts.map((a) => (a.id === attemptId ? { ...a, ...failed } : a)) : [...attempts, failed]
-            }
-          };
-        },
-        { label: dismissed ? 'Payment abandoned' : 'Payment failed', note: reason }
-      );
+      reportPaymentFailure({
+        orderId: order.id,
+        gatewayOrderId: gw.gatewayOrderId,
+        paymentId: err instanceof PaymentError ? err.paymentId : undefined,
+        failureReason: dismissed ? 'Payment window closed' : reason
+      });
       setPaymentError(dismissed ? 'Payment was cancelled. Your bag is saved — you can retry anytime.' : `${reason}. No money was deducted — please retry or choose another method.`);
       setIsProcessing(false);
     }
@@ -387,7 +315,7 @@ export default function CheckoutPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
           <Link href="/shop" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             <ArrowLeft size={16} />
-            <span>Return to Boutique</span>
+            <span>Continue shopping</span>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: '#1f7a4d', fontWeight: 600 }}>
             <Lock size={14} />
@@ -399,7 +327,7 @@ export default function CheckoutPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* 1. Contact */}
             <section style={cardStyle}>
-              {stepHeader(1, 'Contact Information', `${contactName} · ${contactEmail} · ${contactPhone}`)}
+              {stepHeader(1, 'Contact Information', [contactName, contactEmail, contactPhone].filter(Boolean).join(' · '))}
               {step === 1 && (
                 <div style={{ marginTop: '1.25rem' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
@@ -409,7 +337,7 @@ export default function CheckoutPage() {
                       {errors.name && <p style={errorText}>{errors.name}</p>}
                     </div>
                     <div>
-                      <label htmlFor="co-email" style={labelStyle}>Email *</label>
+                      <label htmlFor="co-email" style={labelStyle}>Email <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional, for receipt)</span></label>
                       <input id="co-email" type="email" autoComplete="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} style={inputStyle(!!errors.email)} />
                       {errors.email && <p style={errorText}>{errors.email}</p>}
                     </div>
@@ -495,7 +423,7 @@ export default function CheckoutPage() {
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Dispatched within 24 hours</span>
                           </span>
                         </span>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{formatPrice(800)}</span>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{formatPrice(EXPRESS_SHIPPING_FEE)}</span>
                       </label>
                     </div>
                     {hasStitching && (
@@ -636,12 +564,6 @@ export default function CheckoutPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   <span>Milestone Reward</span>
                   <span>- {formatPrice(milestoneDiscount)}</span>
-                </div>
-              )}
-              {getCartRewards(cartSubtotal).gift && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#1B4435' }}>
-                  <span>Exclusive Gift</span>
-                  <span>Included</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>

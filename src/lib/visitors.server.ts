@@ -1,15 +1,13 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
+import { kvGet, kvSet } from './kv.server';
 
 /**
- * File-backed store for visitor analytics, cookie consents and phone leads.
- * Swap for a database before deploying to a host with a read-only filesystem (e.g. Vercel).
+ * Visitor analytics, cookie consents and phone leads, kept in the shared KV store
+ * (Netlify Blobs in production). Visits are sharded by month so each page view rewrites one small blob.
  */
-const DATA_DIR = path.join(process.cwd(), 'data');
-const FILE = path.join(DATA_DIR, 'visitors.json');
+const STORE = 'visitors';
 const RETENTION_DAYS = 180;
-const MAX_VISITS = 50000;
+const MAX_VISITS_PER_MONTH = 50000;
 
 export interface Visit {
   t: number;
@@ -52,76 +50,89 @@ interface Db {
   leads: Lead[];
 }
 
-let cache: Db | null = null;
-let queue: Promise<unknown> = Promise.resolve();
+const monthKey = (t: number) => `visits-${new Date(t).toISOString().slice(0, 7)}`;
 
-async function load(): Promise<Db> {
-  if (cache) return cache;
-  try {
-    cache = JSON.parse(await readFile(FILE, 'utf8')) as Db;
-  } catch {
-    cache = { salt: { day: '', value: '' }, visits: [], consents: [], leads: [] };
-  }
-  return cache;
+function retainedMonths() {
+  const keys = new Set<string>();
+  for (let t = Date.now() - RETENTION_DAYS * 86400000; t <= Date.now() + 86400000; t += 15 * 86400000) keys.add(monthKey(t));
+  keys.add(monthKey(Date.now()));
+  return [...keys];
 }
 
-/** Serialise read-modify-write so concurrent requests don't clobber each other. */
-function mutate<T>(fn: (db: Db) => T): Promise<T> {
-  const run = queue.then(async () => {
-    const db = await load();
-    const result = fn(db);
-    const cutoff = Date.now() - RETENTION_DAYS * 86400000;
-    db.visits = db.visits.filter((v) => v.t > cutoff).slice(-MAX_VISITS);
-    await mkdir(DATA_DIR, { recursive: true });
-    await writeFile(FILE, JSON.stringify(db));
-    return result;
-  });
+let queue: Promise<unknown> = Promise.resolve();
+
+/** Serialise writes within this instance so concurrent requests don't clobber each other. */
+function serial<T>(fn: () => Promise<T>): Promise<T> {
+  const run = queue.then(fn);
   queue = run.catch(() => undefined);
   return run;
 }
 
-export function readDb() {
-  return queue.then(load);
+export async function readDb(): Promise<Db> {
+  const cutoff = Date.now() - RETENTION_DAYS * 86400000;
+  const [salt, consents, leads, ...months] = await Promise.all([
+    kvGet<Db['salt']>(STORE, 'salt'),
+    kvGet<ConsentRecord[]>(STORE, 'consents'),
+    kvGet<Lead[]>(STORE, 'leads'),
+    ...retainedMonths().map((k) => kvGet<Visit[]>(STORE, k))
+  ]);
+  return {
+    salt: salt ?? { day: '', value: '' },
+    visits: months.flatMap((m) => m ?? []).filter((v) => v.t > cutoff).sort((a, b) => a.t - b.t),
+    consents: consents ?? [],
+    leads: leads ?? []
+  };
 }
 
-function dailySalt(db: Db) {
+async function dailySalt() {
   const day = new Date().toISOString().slice(0, 10);
-  if (db.salt.day !== day) db.salt = { day, value: randomBytes(16).toString('hex') };
-  return db.salt.value;
+  const salt = await kvGet<Db['salt']>(STORE, 'salt');
+  if (salt?.day === day) return salt.value;
+  const fresh = { day, value: randomBytes(16).toString('hex') };
+  await kvSet(STORE, 'salt', fresh);
+  return fresh.value;
 }
 
 export function recordVisit(v: Omit<Visit, 'vh' | 't'> & { ip: string; ua: string }) {
   const { ip, ua, ...rest } = v;
-  return mutate((db) => {
-    const vh = createHash('sha256').update(`${dailySalt(db)}|${ip}|${ua}`).digest('hex').slice(0, 16);
-    db.visits.push({ ...rest, vh, t: Date.now() });
+  return serial(async () => {
+    const vh = createHash('sha256').update(`${await dailySalt()}|${ip}|${ua}`).digest('hex').slice(0, 16);
+    const key = monthKey(Date.now());
+    const visits = (await kvGet<Visit[]>(STORE, key)) ?? [];
+    visits.push({ ...rest, vh, t: Date.now() });
+    await kvSet(STORE, key, visits.slice(-MAX_VISITS_PER_MONTH));
   });
 }
 
 export function recordConsent(c: Omit<ConsentRecord, 't'>) {
-  return mutate((db) => {
-    db.consents.push({ ...c, t: Date.now() });
+  return serial(async () => {
+    const cutoff = Date.now() - RETENTION_DAYS * 86400000;
+    const consents = ((await kvGet<ConsentRecord[]>(STORE, 'consents')) ?? []).filter((x) => x.t > cutoff);
+    consents.push({ ...c, t: Date.now() });
+    await kvSet(STORE, 'consents', consents);
   });
 }
 
 export function recordLead(l: Omit<Lead, 'id' | 't'>) {
-  return mutate((db) => {
-    const existing = db.leads.find((x) => x.phone === l.phone);
-    if (existing) {
-      Object.assign(existing, l, { t: Date.now() });
-      return existing;
+  return serial(async () => {
+    const leads = (await kvGet<Lead[]>(STORE, 'leads')) ?? [];
+    let lead = leads.find((x) => x.phone === l.phone);
+    if (lead) Object.assign(lead, l, { t: Date.now() });
+    else {
+      lead = { ...l, id: randomBytes(6).toString('hex'), t: Date.now() };
+      leads.push(lead);
     }
-    const lead = { ...l, id: randomBytes(6).toString('hex'), t: Date.now() };
-    db.leads.push(lead);
+    await kvSet(STORE, 'leads', leads);
     return lead;
   });
 }
 
 export function deleteLead(id: string) {
-  return mutate((db) => {
-    const before = db.leads.length;
-    db.leads = db.leads.filter((l) => l.id !== id);
-    return db.leads.length !== before;
+  return serial(async () => {
+    const leads = (await kvGet<Lead[]>(STORE, 'leads')) ?? [];
+    const kept = leads.filter((l) => l.id !== id);
+    await kvSet(STORE, 'leads', kept);
+    return kept.length !== leads.length;
   });
 }
 

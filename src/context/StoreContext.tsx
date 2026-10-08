@@ -1,10 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Product, CartItem, Order, OrderEvent, SizeOption, StitchingOption } from '@/lib/types';
 import { INITIAL_PRODUCTS, INITIAL_ORDERS, PINCODE_DATABASE } from '@/lib/data';
 import { generateSampleOrders } from '@/lib/sampleOrders';
-import { getCartRewards } from '@/lib/cartRewards';
+import { PROMO_CODES, getCartRewards } from '@/lib/cartRewards';
 
 interface Toast {
   id: string;
@@ -49,7 +49,10 @@ interface StoreContextType {
   // Orders
   hydrated: boolean;
   orders: Order[];
-  createOrder: (orderData: Omit<Order, 'id' | 'orderNumber' | 'date' | 'createdAt' | 'history'>) => Order;
+  /** Adds or refreshes a server-confirmed order in this browser's order history. */
+  recordOrder: (order: Order) => void;
+  /** Admin only: loads every order from the server and saves later edits back to it. */
+  syncAdminOrders: () => Promise<void>;
   updateOrder: (orderId: string, updates: Partial<Order> | ((order: Order) => Partial<Order>), event?: Omit<OrderEvent, 'at'>) => void;
   updateOrderStatus: (orderId: string, status: Order['fulfillmentStatus'], note?: string) => void;
   commitOrderStock: (order: Order) => void;
@@ -68,12 +71,6 @@ interface StoreContextType {
   toasts: Toast[];
   showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
-
-const PROMO_CODES: Record<string, { pct: number; message: string }> = {
-  ELEGANCE: { pct: 0.1, message: 'Promo code applied: 10% off' },
-  ROYAL10: { pct: 0.1, message: 'Promo code applied: 10% off' },
-  FIRST15: { pct: 0.15, message: 'First order special: 15% off applied' }
-};
 
 // Admin edits are kept in localStorage; they are dropped whenever the shipped catalog changes so shoppers never see stale data
 const CATALOG_VERSION = (() => {
@@ -268,20 +265,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const isInWishlist = (productId: string) => wishlist.includes(productId);
 
   // Orders
-  const createOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'date' | 'createdAt' | 'history'>): Order => {
-    const now = new Date();
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const newOrder: Order = {
-      ...orderData,
-      id: `ord-${now.getTime()}`,
-      orderNumber: `HEVA-${now.getFullYear()}-${randomNum}`,
-      date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      createdAt: now.toISOString(),
-      history: [{ at: now.toISOString(), label: 'Order created' }]
-    };
+  const recordOrder = (order: Order) => {
+    setOrders((prev) => [order, ...prev.filter((o) => o.id !== order.id)]);
+  };
 
-    setOrders((prev) => [newOrder, ...prev]);
-    return newOrder;
+  const adminSync = useRef(false);
+  const syncAdminOrders = async () => {
+    adminSync.current = true;
+    try {
+      const res = await fetch('/api/admin/orders', { cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      const { orders: live } = (await res.json()) as { orders: Order[] };
+      setOrders((prev) => [...live, ...prev.filter((o) => o.isSample)]);
+    } catch {
+      showToast('Could not load orders from the server', 'error');
+    }
   };
 
   const updateOrder = (
@@ -289,14 +287,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     updates: Partial<Order> | ((order: Order) => Partial<Order>),
     event?: Omit<OrderEvent, 'at'>
   ) => {
-    setOrders((prev) =>
-      prev.map((ord) => {
-        if (ord.id !== orderId) return ord;
-        const patch = typeof updates === 'function' ? updates(ord) : updates;
-        const history = event ? [...(ord.history || []), { ...event, at: new Date().toISOString() }] : ord.history;
-        return { ...ord, ...patch, history };
+    const current = orders.find((o) => o.id === orderId);
+    if (!current) return;
+    const patch = typeof updates === 'function' ? updates(current) : updates;
+    const history = event ? [...(current.history || []), { ...event, at: new Date().toISOString() }] : current.history;
+    const next: Order = { ...current, ...patch, history };
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? next : o)));
+
+    if (adminSync.current && !next.isSample) {
+      fetch(`/api/admin/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next)
       })
-    );
+        .then((res) => {
+          if (!res.ok) throw new Error(String(res.status));
+        })
+        .catch(() => showToast('Change not saved to the server — please retry', 'error'));
+    }
   };
 
   const updateOrderStatus = (orderId: string, status: Order['fulfillmentStatus'], note?: string) => {
@@ -366,8 +374,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (cleanPin.length === 6 && /^\d+$/.test(cleanPin)) {
       return {
         serviceable: true,
-        city: 'India Hub',
-        state: 'Express Courier Network',
+        // Unlisted PINs ship via the national courier network; no city to show
+        city: '',
+        state: '',
         days: 4,
         cod: true
       };
@@ -404,7 +413,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setIsSearchOpen,
         hydrated,
         orders,
-        createOrder,
+        recordOrder,
+        syncAdminOrders,
         updateOrder,
         updateOrderStatus,
         commitOrderStock,

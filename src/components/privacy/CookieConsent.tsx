@@ -44,16 +44,15 @@ export default function CookieConsent() {
     <>
       {showBanner && !showPrefs && (
         <div className={styles.banner} role="region" aria-label="Cookie consent">
-          <h2>We value your privacy</h2>
           <p>
-            We use essential cookies to run our store (cart, wishlist, checkout). With your permission we&rsquo;d also like to use analytics cookies to understand how visitors use our site, and marketing cookies to show you relevant offers. Read our <Link href="/pages/cookie-policy">Cookie Policy</Link>.
+            We use cookies to run the store and, with your OK, for analytics and offers. <Link href="/pages/cookie-policy">Cookie Policy</Link> ·{' '}
+            <button type="button" className={styles.linkBtn} onClick={() => setShowPrefs(true)}>
+              Customise
+            </button>
           </p>
           <div className={styles.actions}>
             <button type="button" className={styles.btn} onClick={() => decide({ analytics: false, marketing: false })}>
-              Reject non-essential
-            </button>
-            <button type="button" className={styles.btn} onClick={() => setShowPrefs(true)}>
-              Customise
+              Essential only
             </button>
             <button type="button" className={styles.btnPrimary} onClick={() => decide({ analytics: true, marketing: true })}>
               Accept all

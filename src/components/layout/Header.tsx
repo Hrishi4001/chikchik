@@ -54,7 +54,7 @@ export default function Header() {
     categories: [
       { label: 'ALL CLOTHING', href: '/shop' },
       { label: 'SAREES', href: '/shop?category=sarees' },
-      { label: 'KURTI SUITS', href: '/shop?category=kurti-suits' },
+      { label: 'KURTIS & SUITS', href: '/shop?category=kurti-suits' },
     ]
   };
 

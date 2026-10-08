@@ -3,49 +3,57 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Review } from './types';
 
-// Email is stored for verification/contact only and never rendered publicly.
+// Email is stored server-side for verification/contact only; the public API never returns it.
 export type StoreReview = Review & {
-  email: string;
+  email?: string;
   productId?: string;
   productSlug?: string;
   productTitle?: string;
 };
 
-const STORAGE_KEY = 'svayam_reviews';
 const CHANGE_EVENT = 'svayam-reviews-change';
 
-function read(): StoreReview[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
+let cache: StoreReview[] | null = null;
+let inflight: Promise<StoreReview[]> | null = null;
+
+function load(force = false): Promise<StoreReview[]> {
+  if (cache && !force) return Promise.resolve(cache);
+  if (!inflight || force) {
+    inflight = fetch('/api/reviews', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : { reviews: [] }))
+      .then((data: { reviews: StoreReview[] }) => (cache = data.reviews))
+      .catch(() => cache ?? [])
+      .finally(() => {
+        inflight = null;
+      });
   }
+  return inflight;
 }
 
-// Shared across every mounted component (and other tabs) so a review posted on a
-// product page shows up in the home page summary without a reload.
+// Reviews live on the server so every shopper sees them; one fetch is shared by all mounted components.
 export function useReviews() {
-  const [reviews, setReviews] = useState<StoreReview[]>([]);
+  const [reviews, setReviews] = useState<StoreReview[]>(cache ?? []);
 
   useEffect(() => {
-    const sync = () => setReviews(read());
+    const sync = () => load().then(setReviews);
     sync();
     window.addEventListener(CHANGE_EVENT, sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener(CHANGE_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
+    return () => window.removeEventListener(CHANGE_EVENT, sync);
   }, []);
 
-  const addReview = useCallback((review: StoreReview) => {
-    const next = [review, ...read()];
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {}
-    setReviews(next);
+  /** Posts a review; resolves to an error message, or null on success. */
+  const addReview = useCallback(async (review: Omit<StoreReview, 'id' | 'date' | 'verifiedBuyer'>): Promise<string | null> => {
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(review)
+    }).catch(() => null);
+    const data = await res?.json().catch(() => null);
+    if (!res?.ok) return data?.error || 'Could not post your review. Please try again.';
+    cache = [data.review, ...(cache ?? [])];
+    setReviews(cache);
     window.dispatchEvent(new Event(CHANGE_EVENT));
+    return null;
   }, []);
 
   return { reviews, addReview };

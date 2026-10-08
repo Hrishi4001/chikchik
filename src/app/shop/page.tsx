@@ -13,7 +13,7 @@ type SortKey = 'featured' | 'price-low' | 'price-high' | 'newest';
 const CATEGORIES = [
   { id: 'all', label: 'All' },
   { id: 'sarees', label: 'Sarees' },
-  { id: 'kurti-suits', label: 'Kurti Suits' }
+  { id: 'kurti-suits', label: 'Kurtis & Suits' }
 ];
 
 const FABRICS = [

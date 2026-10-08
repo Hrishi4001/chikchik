@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { X, Trash2, ArrowRight, ShieldCheck, Sparkles, Plus, Minus, Tag, Truck, BadgePercent, Gift, Check } from 'lucide-react';
+import { X, Trash2, ArrowRight, ShieldCheck, Sparkles, Plus, Minus, Tag, Truck, BadgePercent, Check } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { CART_MILESTONES, STANDARD_SHIPPING_FEE, getCartRewards } from '@/lib/cartRewards';
 
-const MILESTONE_ICONS = [Truck, BadgePercent, Gift];
+const MILESTONE_ICONS = [Truck, BadgePercent];
 
 export default function CartDrawer() {
   const router = useRouter();
@@ -50,6 +50,7 @@ export default function CartDrawer() {
   // Cross-sell: in-stock items not in the bag, same categories first, then bestsellers;
   // prefer pieces that close the gap to the next milestone.
   const cartProductIds = new Set(cart.map((i) => i.product.id));
+  const bagSizes = new Set(cart.map((i) => i.selectedSize));
   const cartCategories = new Set(cart.map((i) => i.product.category));
   const recommendations = products
     .filter((p) => p.inStock && p.stockCount > 0 && !cartProductIds.has(p.id))
@@ -123,7 +124,7 @@ export default function CartDrawer() {
               Your Shopping Bag
             </h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              {cart.length === 0 ? 'Bag is empty' : `${cart.reduce((s, i) => s + i.quantity, 0)} handcrafted items`}
+              {cart.length === 0 ? 'Bag is empty' : `${cart.reduce((s, i) => s + i.quantity, 0)} ${cart.reduce((s, i) => s + i.quantity, 0) === 1 ? 'item' : 'items'}`}
             </p>
           </div>
           <button
@@ -146,7 +147,7 @@ export default function CartDrawer() {
         <div
           style={{
             padding: '0.9rem 1.75rem 1.1rem',
-            backgroundColor: rewards.gift ? '#F0F7F2' : '#F9F6F0',
+            backgroundColor: rewards.next ? '#F9F6F0' : '#F0F7F2',
             borderBottom: '1px solid var(--border-subtle)'
           }}
         >
@@ -158,7 +159,7 @@ export default function CartDrawer() {
                   Add <strong>{formatPrice(rewards.remainingForNext)}</strong> more to unlock <strong>{rewards.next.perk}</strong>
                 </>
               ) : (
-                <>All rewards unlocked! <strong>₹200 off, free shipping &amp; an exclusive gift</strong></>
+                <>All rewards unlocked! <strong>₹200 off &amp; free shipping</strong></>
               )}
             </span>
           </div>
@@ -168,7 +169,7 @@ export default function CartDrawer() {
                 height: '100%',
                 width: `${progress}%`,
                 borderRadius: '2px',
-                backgroundColor: rewards.gift ? '#1B4435' : 'var(--color-earth-brown)',
+                backgroundColor: rewards.next ? 'var(--color-earth-brown)' : '#1B4435',
                 transition: 'width 0.4s ease'
               }}
             />
@@ -421,13 +422,20 @@ export default function CartDrawer() {
                         </span>
                       )}
                     </p>
-                    <button
-                      onClick={() => addToCart(p, p.sizes[0])}
-                      className="btn-secondary"
-                      style={{ marginTop: 'auto', padding: '0.4rem', fontSize: '0.68rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.25rem' }}
-                    >
-                      <Plus size={12} /> Add {p.sizes.length > 1 ? `(${p.sizes[0]})` : ''}
-                    </button>
+                    {(() => {
+                      // Only quick-add a size the shopper has already chosen elsewhere in the bag; otherwise let them pick
+                      const size = p.sizes.length <= 1 ? p.sizes[0] || 'Free Size' : p.sizes.find((s) => bagSizes.has(s));
+                      const style = { marginTop: 'auto', padding: '0.4rem', fontSize: '0.68rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.25rem' };
+                      return size ? (
+                        <button onClick={() => addToCart(p, size)} className="btn-secondary" style={style}>
+                          <Plus size={12} /> Add {p.sizes.length > 1 ? `(${size})` : ''}
+                        </button>
+                      ) : (
+                        <Link href={`/product/${p.slug}`} onClick={() => setIsCartOpen(false)} className="btn-secondary" style={style}>
+                          Choose size
+                        </Link>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
@@ -507,12 +515,6 @@ export default function CartDrawer() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--color-earth-brown)' }}>
                   <span>Milestone Reward</span>
                   <span>- {formatPrice(milestoneDiscount)}</span>
-                </div>
-              )}
-              {rewards.gift && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#1B4435' }}>
-                  <span>Exclusive Gift</span>
-                  <span>Included</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>

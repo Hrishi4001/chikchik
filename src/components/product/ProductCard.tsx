@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Plus, Star } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { useStore } from '@/context/StoreContext';
+import { averageRating, useReviews } from '@/lib/reviews';
 
 interface ProductCardProps {
   product: Product;
@@ -16,6 +17,10 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { formatPrice, addToCart } = useStore();
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
+
+  const { reviews: storeReviews } = useReviews();
+  const cardReviews = [...storeReviews.filter((r) => r.productId === product.id), ...product.reviews];
+  const rating = averageRating(cardReviews);
 
   const secondaryImage = product.images[1] || product.images[0];
   const isSoldOut = !product.inStock || product.stockCount <= 0;
@@ -154,19 +159,22 @@ export default function ProductCard({ product }: ProductCardProps) {
               fontFamily: 'var(--font-body-family)',
               fontSize: '0.92rem',
               fontWeight: 600,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
+              letterSpacing: '0.01em',
               color: '#580F00',
               lineHeight: 1.35,
-              transition: 'color 0.2s ease',
               margin: 0
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#580F00')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#580F00')}
           >
             {product.title}
           </h3>
         </Link>
+
+        {cardReviews.length > 0 && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', color: '#5C5852' }}>
+            <Star size={13} fill="#C08A2E" color="#C08A2E" />
+            {rating.toFixed(1)} <span style={{ color: '#9A8F86' }}>({cardReviews.length})</span>
+          </span>
+        )}
 
         {/* Regular Price */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.15rem 0.5rem' }}>

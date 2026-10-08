@@ -42,7 +42,7 @@ export default function HomePage() {
       image: 'https://static.wixstatic.com/media/80e345_55dd42dcf4734ed68704cf25097b1735~mv2.webp/v1/fill/w_800,h_1067,al_c,q_85/file.webp'
     },
     {
-      title: 'Kurti Suits',
+      title: 'Kurtis & Suits',
       href: '/shop?category=kurti-suits',
       image: 'https://static.wixstatic.com/media/80e345_a4f1adb0a4384b0c9b466dffa9d4724e~mv2.jpeg/v1/fill/w_800,h_1067,al_c,q_85/file.jpeg'
     }
@@ -108,11 +108,11 @@ export default function HomePage() {
           }}
         >
           <div className="hero-copy">
-            <p className="hero-eyebrow">Sarees &amp; Kurti Suits</p>
+            <p className="hero-eyebrow">Sarees · Kurtis &amp; Suits</p>
             <h1 className="hero-title">Everyday ease, festive grace.</h1>
             <p className="hero-sub">
               {Number.isFinite(fromPrice('sarees')) && <>Sarees from {formatPrice(fromPrice('sarees'))} · </>}
-              {Number.isFinite(fromPrice('kurti-suits')) && <>Kurti suits from {formatPrice(fromPrice('kurti-suits'))} · </>}
+              {Number.isFinite(fromPrice('kurti-suits')) && <>Kurtis from {formatPrice(fromPrice('kurti-suits'))} · </>}
               Free shipping above ₹699
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -120,7 +120,7 @@ export default function HomePage() {
                 Shop Sarees
               </Link>
               <Link href="/shop?category=kurti-suits" className="button--white-outlined">
-                Shop Kurti Suits
+                Shop Kurtis
               </Link>
             </div>
           </div>
@@ -134,10 +134,10 @@ export default function HomePage() {
       <section
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '1rem',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 'clamp(0.5rem, 1.2vw, 1rem)',
           width: '100%',
-          paddingTop: '1rem'
+          paddingTop: 'clamp(0.5rem, 1.2vw, 1rem)'
         }}
       >
         {categoryCards.map((cat) => (
@@ -150,7 +150,8 @@ export default function HomePage() {
               position: 'relative',
               display: 'flex',
               alignItems: 'flex-end',
-              minHeight: '80vh',
+              // Side by side on phones too, so products start within the first scroll
+              minHeight: 'clamp(240px, 64vw, 80vh)',
               overflow: 'hidden',
               textDecoration: 'none'
             }}
@@ -190,14 +191,14 @@ export default function HomePage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.9rem',
-                padding: '0 2rem 2.5rem'
+                gap: 'clamp(0.5rem, 1.5vw, 0.9rem)',
+                padding: '0 0.75rem clamp(1rem, 4vw, 2.5rem)'
               }}
             >
               <span
                 style={{
                   fontFamily: 'var(--font-heading-family)',
-                  fontSize: '1.15rem',
+                  fontSize: 'clamp(0.85rem, 2.4vw, 1.15rem)',
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
                   color: '#FFFFFF',
@@ -255,17 +256,18 @@ export default function HomePage() {
               marginBottom: '2rem'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <button
-                className="button button--filled"
-                style={{
-                  padding: '0.65rem 1.6rem',
-                  fontSize: '0.75rem'
-                }}
-              >
-                NEW ARRIVALS
-              </button>
-            </div>
+            <h2
+              style={{
+                fontFamily: 'var(--font-heading-family)',
+                fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
+                fontWeight: 400,
+                color: '#580F00',
+                letterSpacing: '-0.02em',
+                margin: 0
+              }}
+            >
+              New Arrivals
+            </h2>
 
             {/* Slider Navigation Buttons */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -321,7 +323,7 @@ export default function HomePage() {
         style={{
           position: 'relative',
           width: '100%',
-          minHeight: '85vh',
+          minHeight: 'min(85vh, 120vw)',
           display: 'flex',
           alignItems: 'flex-end',
           overflow: 'hidden'
@@ -414,7 +416,7 @@ export default function HomePage() {
               margin: '0 0 2rem'
             }}
           >
-            Kurti Suits
+            Kurtis &amp; Suits
           </h2>
         </div>
 

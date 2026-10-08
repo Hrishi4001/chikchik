@@ -22,6 +22,8 @@ import { useStore } from '@/context/StoreContext';
 import { Product, SizeOption } from '@/lib/types';
 import { LEGAL, SIZE_CHART } from '@/lib/legal';
 import ProductCard from '@/components/product/ProductCard';
+import ProductReviews, { Stars } from '@/components/product/ProductReviews';
+import { averageRating, useReviews } from '@/lib/reviews';
 
 // Catalog uses "XXL"; the size chart uses "2XL"
 const chartSize = (size: string) => (size === 'XXL' ? '2XL' : size);
@@ -64,7 +66,11 @@ function ProductView({ product }: { product: Product }) {
   } = useStore();
 
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState<SizeOption>(product.sizes[0] || 'Free Size');
+  const isFreeSizeProduct = product.sizes.length <= 1;
+  // Never pre-select a size for multi-size pieces; a silent default leads to wrong-size orders
+  const [selectedSize, setSelectedSize] = useState<SizeOption | null>(isFreeSizeProduct ? product.sizes[0] || 'Free Size' : null);
+  const [sizeError, setSizeError] = useState(false);
+  const sizeBlockRef = useRef<HTMLDivElement>(null);
   const [quantity, setQuantity] = useState(1);
   const [pincodeInput, setPincodeInput] = useState('');
   const [pincodeResult, setPincodeResult] = useState<{ checked: boolean; serviceable: boolean; city?: string; days?: number } | null>(null);
@@ -81,6 +87,10 @@ function ProductView({ product }: { product: Product }) {
 
   const [isStickyVisible, setIsStickyVisible] = useState(false);
   const mainBuyCtaRef = useRef<HTMLDivElement>(null);
+
+  const { reviews: storeReviews, addReview } = useReviews();
+  const allReviews = [...storeReviews.filter((r) => r.productId === product.id), ...product.reviews];
+  const reviewAverage = averageRating(allReviews);
 
   const isFavorited = isInWishlist(product.id);
   const isSoldOut = !product.inStock || product.stockCount <= 0;
@@ -125,12 +135,22 @@ function ProductView({ product }: { product: Product }) {
     setPincodeResult({ checked: true, ...res });
   };
 
+  const requireSize = (): SizeOption | null => {
+    if (selectedSize) return selectedSize;
+    setSizeError(true);
+    sizeBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return null;
+  };
+
   const handleAddToCart = () => {
-    addToCart(product, selectedSize, undefined, quantity);
+    const size = requireSize();
+    if (size) addToCart(product, size, undefined, quantity);
   };
 
   const handleBuyNow = () => {
-    addToCart(product, selectedSize, undefined, quantity);
+    const size = requireSize();
+    if (!size) return;
+    addToCart(product, size, undefined, quantity);
     router.push('/checkout');
   };
 
@@ -248,6 +268,19 @@ function ProductView({ product }: { product: Product }) {
               ))}
             </div>
 
+            {product.images.length > 1 && (
+              <div className="gallery-dots">
+                {product.images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    className={selectedImage === idx ? 'is-active' : ''}
+                    onClick={() => goToImage(idx)}
+                    aria-label={`Show image ${idx + 1} of ${product.images.length}`}
+                  />
+                ))}
+              </div>
+            )}
+
             <button
               className="gallery-expand-button"
               onClick={() => openLightbox(selectedImage)}
@@ -280,6 +313,20 @@ function ProductView({ product }: { product: Product }) {
             {product.title}
           </h1>
 
+          {allReviews.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpenAccordions((prev) => ({ ...prev, reviews: true }));
+                setTimeout(() => document.getElementById('product-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '-0.5rem' }}
+            >
+              <Stars value={Math.round(reviewAverage)} size={13} />
+              <span>{reviewAverage.toFixed(1)} · {allReviews.length} {allReviews.length === 1 ? 'review' : 'reviews'}</span>
+            </button>
+          )}
+
           {/* Price & Taxes Notice */}
           <div className="product-price-container">
             <div className="product-regular-price" style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.6rem' }}>
@@ -297,9 +344,6 @@ function ProductView({ product }: { product: Product }) {
             </div>
             <p className="product-taxes-notice">
               Inclusive of all taxes. Free shipping in India on orders above {formatPrice(LEGAL.freeShippingThreshold)}.
-            </p>
-            <p className="product-sku-tag">
-              SKU {product.id.toUpperCase()}
             </p>
           </div>
 
@@ -331,8 +375,10 @@ function ProductView({ product }: { product: Product }) {
           </dl>
 
           {!isFreeSize && (
-            <div className="variant-option-block">
-              <span className="variant-label-title" id="sizeLabel">Size: {selectedSize}</span>
+            <div className="variant-option-block" ref={sizeBlockRef}>
+              <span className="variant-label-title" id="sizeLabel" style={sizeError ? { color: '#B3261E' } : undefined}>
+                {selectedSize ? `Size: ${selectedSize}` : sizeError ? 'Please select a size' : 'Select size'}
+              </span>
               <div className="size-pill-row" role="radiogroup" aria-labelledby="sizeLabel">
                 {product.sizes.map((sz) => (
                   <button
@@ -341,7 +387,10 @@ function ProductView({ product }: { product: Product }) {
                     role="radio"
                     aria-checked={selectedSize === sz}
                     className={`size-pill ${selectedSize === sz ? 'is-active' : ''}`}
-                    onClick={() => setSelectedSize(sz)}
+                    onClick={() => {
+                      setSelectedSize(sz);
+                      setSizeError(false);
+                    }}
                   >
                     {sz}
                   </button>
@@ -351,13 +400,16 @@ function ProductView({ product }: { product: Product }) {
           )}
 
           {!isFreeSize && (
-            <button
-              id="sizeGuideTrigger"
-              className="size-guide-trigger-link"
-              onClick={() => setIsSizeGuideOpen(true)}
-            >
-              Size Guide
-            </button>
+            <p style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.35rem 0.75rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <button
+                id="sizeGuideTrigger"
+                className="size-guide-trigger-link"
+                onClick={() => setIsSizeGuideOpen(true)}
+              >
+                Size Guide
+              </button>
+              <span>Between sizes? Pick the larger one — free size exchange within {LEGAL.returnWindowDays} days.</span>
+            </p>
           )}
 
           {/* Buy Action Group: Quantity + Add to Cart */}
@@ -473,7 +525,7 @@ function ProductView({ product }: { product: Product }) {
                 {pincodeResult.serviceable ? (
                   // Same estimate as checkout's standard delivery: courier days + 2 days processing
                   <p style={{ color: '#0F6938', fontWeight: 500 }}>
-                    ✓ Delivery {pincodeResult.city && pincodeResult.city !== 'India Hub' ? `to ${pincodeResult.city} ` : ''}by {deliveryDate((pincodeResult.days ?? 4) + 2)}
+                    ✓ Delivery {pincodeResult.city ? `to ${pincodeResult.city} ` : `to ${pincodeInput} `}by {deliveryDate((pincodeResult.days ?? 4) + 2)}
                   </p>
                 ) : (
                   <p style={{ color: '#B3261E' }}>
@@ -491,13 +543,11 @@ function ProductView({ product }: { product: Product }) {
       <section className="section-more-info">
         <div className="more-info-layout">
           {/* Editorial portrait image */}
-          <div className="more-info-editorial-media">
-            <img 
-              src={product.images[2] || product.images[0]} 
-              alt={`${product.title} detail`} 
-              loading="lazy" 
-            />
-          </div>
+          {product.images[2] && (
+            <div className="more-info-editorial-media">
+              <img src={product.images[2]} alt={`${product.title} detail`} loading="lazy" />
+            </div>
+          )}
 
           {/* Right column: Heading & Accordions */}
           <div className="more-info-content">
@@ -608,41 +658,20 @@ function ProductView({ product }: { product: Product }) {
             </div>
 
             {/* Accordion 5: Product Reviews */}
-            <div className="openform-accordion-item">
+            <div className="openform-accordion-item" id="product-reviews">
               <button 
                 className="openform-accordion-header"
                 onClick={() => toggleAccordion('reviews')}
                 aria-expanded={openAccordions.reviews}
               >
-                <span>Product Reviews ({product.reviews.length})</span>
+                <span>Reviews ({allReviews.length})</span>
                 <span className={`openform-accordion-icon ${openAccordions.reviews ? 'is-open' : ''}`}>
                   <Plus size={16} />
                 </span>
               </button>
               {openAccordions.reviews && (
                 <div className="openform-accordion-body">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', color: '#580F00' }}>
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={15} fill="currentColor" />
-                      ))}
-                    </div>
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{product.reviews.length ? `${product.rating} out of 5` : 'No reviews yet'}</span>
-                    <span style={{ color: '#888888', fontSize: '0.8rem' }}>({product.reviews.length} reviews)</span>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {product.reviews.map((rev) => (
-                      <div key={rev.id} style={{ padding: '0.85rem 0', borderTop: '1px solid #F0F0F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#777777', marginBottom: '0.25rem' }}>
-                          <span style={{ fontWeight: 600, color: '#580F00' }}>{rev.author}</span>
-                          <span>{rev.date}</span>
-                        </div>
-                        <h4 style={{ fontSize: '0.9rem', fontWeight: 600, margin: '0.2rem 0' }}>{rev.title}</h4>
-                        <p style={{ fontSize: '0.85rem', color: '#444444', lineHeight: 1.5 }}>&ldquo;{rev.comment}&rdquo;</p>
-                      </div>
-                    ))}
-                  </div>
+                  <ProductReviews product={product} reviews={allReviews} onSubmit={addReview} />
                 </div>
               )}
             </div>
@@ -680,7 +709,7 @@ function ProductView({ product }: { product: Product }) {
           </div>
           <div className="sticky-cart-meta">
             <span className="sticky-cart-title">{product.title}</span>
-            <span className="sticky-cart-sub">{product.color}{isFreeSize ? '' : ` · Size ${selectedSize}`}</span>
+            <span className="sticky-cart-sub">{product.color}{isFreeSize ? '' : selectedSize ? ` · Size ${selectedSize}` : ' · Select a size'}</span>
           </div>
         </div>
 
@@ -694,7 +723,7 @@ function ProductView({ product }: { product: Product }) {
             disabled={isSoldOut}
             style={{ width: '180px', height: '44px', ...(isSoldOut && { opacity: 0.45, cursor: 'not-allowed' }) }}
           >
-            {isSoldOut ? 'Sold out' : 'Add to cart'}
+            {isSoldOut ? 'Sold out' : selectedSize ? 'Add to cart' : 'Select size'}
           </button>
         </div>
       </div>

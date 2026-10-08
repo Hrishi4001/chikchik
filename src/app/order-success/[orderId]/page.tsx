@@ -32,9 +32,9 @@ export default function OrderSuccessPage({ params }: PageProps) {
 
   const steps = [
     { label: 'Order Confirmed', date: order.date, completed: true },
-    { label: 'Artisan Tailoring & Finishing', date: 'In Atelier', completed: order.fulfillmentStatus !== 'Processing' },
-    { label: 'Quality & Silk Mark Inspection', date: 'Next', completed: ['Quality Check', 'Dispatched', 'Delivered'].includes(order.fulfillmentStatus) },
-    { label: 'Insured Courier Dispatch', date: order.estimatedDelivery, completed: ['Dispatched', 'Delivered'].includes(order.fulfillmentStatus) }
+    { label: 'Quality Check & Packing', date: 'Within 1–3 working days', completed: order.fulfillmentStatus !== 'Processing' },
+    { label: 'Dispatched with Tracking', date: 'Tracking sent on WhatsApp/SMS', completed: ['Dispatched', 'Delivered'].includes(order.fulfillmentStatus) },
+    { label: 'Delivered', date: `Expected by ${order.estimatedDelivery}`, completed: order.fulfillmentStatus === 'Delivered' }
   ];
 
   return (
@@ -66,7 +66,7 @@ export default function OrderSuccessPage({ params }: PageProps) {
         </h1>
 
         <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>
-          Order reference: <strong>{order.orderNumber}</strong> • Receipt dispatched to {order.customerEmail}
+          Order reference: <strong>{order.orderNumber}</strong> • Keep this handy — we&apos;ll contact you on {order.customerPhone} with dispatch and tracking details
         </p>
       </div>
 
@@ -84,7 +84,7 @@ export default function OrderSuccessPage({ params }: PageProps) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem' }}>
           <div>
             <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', fontWeight: 600 }}>
-              Atelier Journey Timeline
+              Order Timeline
             </h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
               Current Status: <strong style={{ color: 'var(--accent-terracotta)' }}>{order.fulfillmentStatus}</strong>

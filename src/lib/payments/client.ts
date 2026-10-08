@@ -1,13 +1,12 @@
 'use client';
 
-import type { PaymentMethod } from '@/lib/types';
+import type { Order, PaymentMethod, PlaceOrderInput } from '@/lib/types';
 
 export interface GatewayOrderResponse {
   mode: 'razorpay' | 'mock';
   keyId: string | null;
   gatewayOrderId: string;
   amount: number; // paise
-  currency: 'INR';
 }
 
 export interface GatewaySuccess {
@@ -22,35 +21,44 @@ export class PaymentError extends Error {
   }
 }
 
-export async function createGatewayOrder(input: {
-  amount: number;
-  receipt: string;
-  customer: { name: string; email: string; phone: string };
-}): Promise<GatewayOrderResponse> {
-  const res = await fetch('/api/payments/create-order', {
+async function post<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input)
+    body: JSON.stringify(body)
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new PaymentError(data.error || 'Could not start payment');
+  if (!res.ok) throw new PaymentError(data.error || 'Something went wrong. Please try again.');
   return data;
 }
 
+/** Server prices the order from its own catalog and, for online payment, opens a gateway order. */
+export function placeServerOrder(input: PlaceOrderInput) {
+  return post<{ order: Order; gateway?: GatewayOrderResponse }>('/api/orders', input);
+}
+
+export function retryOrderPayment(orderId: string) {
+  return post<{ order: Order; gateway: GatewayOrderResponse }>(`/api/orders/${orderId}/pay`, {});
+}
+
 export async function verifyGatewayPayment(input: {
+  orderId: string;
   gatewayOrderId: string;
   paymentId: string;
   signature?: string;
   mockOutcome?: 'success';
-}): Promise<{ paymentId: string; method?: PaymentMethod }> {
-  const res = await fetch('/api/payments/verify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input)
+  mockMethod?: PaymentMethod;
+}): Promise<{ order: Order }> {
+  const data = await post<{ verified: boolean; order: Order; error?: string }>('/api/payments/verify', input).catch((err) => {
+    throw new PaymentError(err.message || 'Payment verification failed', false, input.paymentId);
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.verified) throw new PaymentError(data.error || 'Payment verification failed', false, input.paymentId);
+  if (!data.verified) throw new PaymentError(data.error || 'Payment verification failed', false, input.paymentId);
   return data;
+}
+
+/** Best-effort record of a failed/abandoned attempt for the admin timeline. */
+export function reportPaymentFailure(input: { orderId: string; gatewayOrderId: string; paymentId?: string; failureReason: string }) {
+  return post('/api/payments/verify', input).catch(() => undefined);
 }
 
 // ---- Razorpay Checkout (live mode) ----

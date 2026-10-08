@@ -15,7 +15,8 @@ interface Props {
   product: Product;
   // Seeded catalogue reviews plus customer-submitted ones for this product.
   reviews: (Review | StoreReview)[];
-  onSubmit: (review: StoreReview) => void;
+  /** Resolves to an error message, or null once the review is posted. */
+  onSubmit: (review: Omit<StoreReview, 'id' | 'date' | 'verifiedBuyer'>) => Promise<string | null>;
 }
 
 export default function ProductReviews({ product, reviews, onSubmit }: Props) {
@@ -31,29 +32,33 @@ export default function ProductReviews({ product, reviews, onSubmit }: Props) {
     if (form.author.trim().length < 2) next.author = 'Please enter your name';
     if (!email) next.email = 'Email is required';
     else if (!EMAIL_RE.test(email)) next.email = 'Enter a valid email address (e.g. name@example.com)';
-    else if (reviews.some((r) => 'email' in r && r.email === email)) next.email = 'You have already reviewed this product';
     if (form.rating < 1) next.rating = 'Please select a rating';
     if (form.comment.trim().length < 10) next.comment = 'Review must be at least 10 characters';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
-    onSubmit({
-      id: Math.random().toString(36).substring(2, 9),
+    if (!validate() || busy) return;
+    setBusy(true);
+    const error = await onSubmit({
       author: form.author.trim(),
       email: form.email.trim().toLowerCase(),
       rating: form.rating,
       title: form.title.trim(),
       comment: form.comment.trim(),
-      date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      verifiedBuyer: false,
       productId: product.id,
       productSlug: product.slug,
       productTitle: product.title
     });
+    setBusy(false);
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
     setForm(EMPTY_FORM);
     setErrors({});
     setIsFormOpen(false);
@@ -168,7 +173,7 @@ export default function ProductReviews({ product, reviews, onSubmit }: Props) {
             >
               Cancel
             </button>
-            <button type="submit" className="reviews-cta">Submit Review</button>
+            <button type="submit" className="reviews-cta" disabled={busy}>{busy ? 'Posting…' : 'Submit Review'}</button>
           </div>
         </form>
       )}
@@ -177,7 +182,10 @@ export default function ProductReviews({ product, reviews, onSubmit }: Props) {
         {reviews.map((rev) => (
           <div key={rev.id} style={{ padding: '0.85rem 0', borderTop: '1px solid #F0F0F0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#777777', marginBottom: '0.25rem' }}>
-              <span style={{ fontWeight: 600, color: '#580F00' }}>{rev.author}</span>
+              <span style={{ fontWeight: 600, color: '#580F00' }}>
+                {rev.author}
+                {rev.verifiedBuyer && <span style={{ marginLeft: '0.4rem', fontWeight: 500, color: '#1B4435' }}>✓ Verified buyer</span>}
+              </span>
               <span>{rev.date}</span>
             </div>
             <Stars value={rev.rating} size={12} />

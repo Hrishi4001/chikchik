@@ -1,3 +1,5 @@
+import { EXPRESS_SHIPPING_FEE, STANDARD_SHIPPING_FEE } from './cartRewards';
+
 /** Business details referenced across the policy pages. Fill in the TODO fields before launch. */
 export const LEGAL = {
   brand: 'Heva Elegance',
@@ -9,8 +11,8 @@ export const LEGAL = {
   grievanceOfficer: 'Customer Care Team', // TODO: name of Grievance Officer (IT Rules 2021 / DPDP Act 2023)
   lastUpdated: '7 October 2026',
   freeShippingThreshold: 699,
-  standardShippingFee: 500,
-  expressShippingFee: 800,
+  standardShippingFee: STANDARD_SHIPPING_FEE,
+  expressShippingFee: EXPRESS_SHIPPING_FEE,
   returnWindowDays: 7,
 };
 

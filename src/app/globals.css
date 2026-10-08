@@ -733,14 +733,53 @@ img {
   color: #FFFFFF;
 }
 
-/* Mobile: gallery runs edge to edge */
+/* Mobile: gallery runs edge to edge and stays short enough that title and price show without scrolling */
+.gallery-dots {
+  display: none;
+}
+
 @media (max-width: 860px) {
+  .product-hero-layout {
+    gap: 1.25rem;
+  }
+
   .product-gallery-strip {
     margin: -1rem -1.25rem 0;
   }
 
   .product-thumbs-column {
-    padding: 0 1.25rem 0.5rem;
+    display: none;
+  }
+
+  .product-main-frame {
+    aspect-ratio: auto;
+    height: min(60vh, 133vw);
+  }
+
+  .gallery-dots {
+    position: absolute;
+    left: 50%;
+    bottom: 0.9rem;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.4rem;
+    z-index: 5;
+  }
+
+  .gallery-dots button {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  }
+
+  .gallery-dots button.is-active {
+    background: #FFFFFF;
+    width: 18px;
+    border-radius: 4px;
   }
 }
 

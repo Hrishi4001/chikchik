@@ -9,9 +9,10 @@ import { CONSENT_EVENT, getConsent } from '@/lib/consent';
 import styles from './privacy.module.css';
 
 const DISMISS_KEY = 'he_phone_prompt';
-const DELAY_MS = 15000;
+const DELAY_MS = 45000;
 const SNOOZE_DAYS = 14;
-const HIDDEN_ON = ['/checkout', '/order-success', '/pages/privacy-policy', '/pages/cookie-policy'];
+const WELCOME_CODE = 'FIRST15';
+const HIDDEN_ON = ['/checkout', '/order-success', '/admin', '/pages/privacy-policy', '/pages/cookie-policy'];
 
 function snoozed() {
   try {
@@ -31,7 +32,7 @@ function remember(value: number) {
 /** WhatsApp/SMS sign-up prompt; shown only to visitors who allowed marketing cookies. */
 export default function PhoneCapture() {
   const pathname = usePathname();
-  const { showToast } = useStore();
+  const { applyPromoCode, isCartOpen } = useStore();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -45,19 +46,28 @@ export default function PhoneCapture() {
   useEffect(() => {
     if (hidden || snoozed()) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // Shown after a long browse, or when a desktop visitor heads for the address bar — never mid-tap on a phone
+    const show = () => {
+      if (getConsent()?.marketing && !snoozed()) setOpen(true);
+    };
     const schedule = () => {
       clearTimeout(timer);
-      if (getConsent()?.marketing) timer = setTimeout(() => setOpen(true), DELAY_MS);
+      if (getConsent()?.marketing) timer = setTimeout(show, DELAY_MS);
+    };
+    const onExitIntent = (e: MouseEvent) => {
+      if (!e.relatedTarget && e.clientY <= 0) show();
     };
     schedule();
     window.addEventListener(CONSENT_EVENT, schedule);
+    document.addEventListener('mouseout', onExitIntent);
     return () => {
       clearTimeout(timer);
       window.removeEventListener(CONSENT_EVENT, schedule);
+      document.removeEventListener('mouseout', onExitIntent);
     };
   }, [hidden]);
 
-  if (!open || hidden) return null;
+  if (!open || hidden || isCartOpen) return null;
 
   const close = () => {
     remember(Date.now());
@@ -78,7 +88,7 @@ export default function PhoneCapture() {
     if (!res?.ok) return setError((await res?.json().catch(() => null))?.error || 'Something went wrong, please try again');
     remember(-1);
     setOpen(false);
-    showToast('Thank you! You’re on the list for new arrivals and offers.', 'success');
+    applyPromoCode(WELCOME_CODE);
   };
 
   return (
@@ -87,8 +97,8 @@ export default function PhoneCapture() {
         <button type="button" className={styles.close} aria-label="Close" onClick={close}>
           <X size={18} />
         </button>
-        <h2 id="phone-capture-title">Be the first to know</h2>
-        <p>Get new arrivals, festive drops and members-only offers on WhatsApp or SMS.</p>
+        <h2 id="phone-capture-title">15% off your first order</h2>
+        <p>Join for new arrivals and festive drops on WhatsApp or SMS. Your code is applied to your bag right away.</p>
 
         <div className={styles.field}>
           <label htmlFor="lead-name">Name (optional)</label>
@@ -113,7 +123,7 @@ export default function PhoneCapture() {
 
         <div className={styles.actions}>
           <button type="submit" className={styles.btnPrimary} disabled={busy}>
-            {busy ? 'Saving…' : 'Sign me up'}
+            {busy ? 'Saving…' : 'Get 15% off'}
           </button>
         </div>
         <p className={styles.fine}>We&rsquo;ll only use your number for updates you agreed to, never sell it, and you can ask us to delete it any time.</p>

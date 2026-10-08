@@ -163,3 +163,13 @@ export interface UserProfile {
     shoulder: string;
   };
 }
+
+/** Checkout request; the server looks up prices itself and never trusts amounts from the browser. */
+export interface PlaceOrderInput {
+  customer: { name: string; email?: string; phone: string };
+  address: { street: string; apartment?: string; city: string; state: string; pincode: string };
+  items: { productId: string; size: string; quantity: number }[];
+  promoCode?: string;
+  shippingMethod: 'standard' | 'express';
+  paymentMethod: 'COD' | 'online';
+}
