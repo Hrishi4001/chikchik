@@ -27,7 +27,7 @@ export interface Product {
   subtitle: string;
   price: number; // in INR
   compareAtPrice?: number;
-  category: 'sarees' | 'kurtas' | 'lehengas' | 'anarkalis' | 'coords' | 'tops' | 'dresses' | 'tunics' | 'sets' | 'bottoms' | 'essentials' | 'festive' | string;
+  category: string;
   categoryLabel: string;
   fabric: string;
   craft: string;
@@ -92,7 +92,7 @@ export interface OrderItem {
 
 export type PaymentMethod = 'UPI' | 'Card' | 'NetBanking' | 'Wallet' | 'COD';
 export type PaymentStatus = 'Pending' | 'Paid' | 'Failed' | 'Refunded';
-export type FulfillmentStatus = 'Processing' | 'Tailoring' | 'Quality Check' | 'Dispatched' | 'Delivered' | 'Cancelled';
+export type FulfillmentStatus = 'Processing' | 'Packing' | 'Quality Check' | 'Dispatched' | 'Delivered' | 'Cancelled';
 
 export interface PaymentAttempt {
   id: string;
@@ -105,7 +105,7 @@ export interface PaymentAttempt {
 }
 
 export interface PaymentInfo {
-  provider: 'razorpay' | 'mock' | 'cod';
+  provider: 'cashfree' | 'razorpay' | 'mock' | 'cod';
   gatewayOrderId?: string;
   gatewayPaymentId?: string;
   attempts: PaymentAttempt[];
@@ -146,6 +146,8 @@ export interface Order {
   estimatedDelivery: string;
   history?: OrderEvent[];
   isSample?: boolean;
+  /** Placed through Cashfree One Click Checkout: contact and address arrive from Cashfree after payment. */
+  oneClick?: boolean;
 }
 
 export interface UserProfile {
@@ -165,11 +167,17 @@ export interface UserProfile {
 }
 
 /** Checkout request; the server looks up prices itself and never trusts amounts from the browser. */
+export interface OneClickOrderInput {
+  phone: string;
+  items: { productId: string; size: string; quantity: number }[];
+  promoCode?: string;
+}
+
 export interface PlaceOrderInput {
   customer: { name: string; email?: string; phone: string };
   address: { street: string; apartment?: string; city: string; state: string; pincode: string };
   items: { productId: string; size: string; quantity: number }[];
   promoCode?: string;
   shippingMethod: 'standard' | 'express';
-  paymentMethod: 'COD' | 'online';
+  paymentMethod: 'online';
 }

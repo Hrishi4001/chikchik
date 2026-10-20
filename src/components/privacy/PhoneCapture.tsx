@@ -114,7 +114,7 @@ export default function PhoneCapture() {
         <label className={styles.check}>
           <input type="checkbox" checked={agree} onChange={(e) => { setAgree(e.target.checked); setError(''); }} />
           <span>
-            I agree to receive promotional messages from Heva Elegance on this number. I can withdraw consent at any time by replying STOP or contacting support. See our <Link href="/pages/privacy-policy">Privacy Policy</Link>.
+            I agree to receive promotional messages from Chikchik on this number. I can withdraw consent at any time by replying STOP or contacting support. See our <Link href="/pages/privacy-policy">Privacy Policy</Link>.
           </span>
         </label>
         <label className={styles.check}>

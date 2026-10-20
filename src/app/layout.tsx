@@ -1,18 +1,19 @@
 import type { Metadata } from 'next';
-import { Instrument_Sans, Figtree, Cormorant, Poppins } from 'next/font/google';
+import { Oswald, Cormorant, Poppins } from 'next/font/google';
 import './globals.css';
 import { StoreProvider } from '@/context/StoreContext';
 import ToastContainer from '@/components/ui/ToastContainer';
 import SiteChrome from '@/components/layout/SiteChrome';
+import { LEGAL } from '@/lib/legal';
 
-const instrument = Instrument_Sans({
+const poppins = Poppins({
   variable: '--font-body',
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700'],
   style: ['normal', 'italic']
 });
 
-const figtree = Figtree({
+const oswald = Oswald({
   variable: '--font-heading',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700']
@@ -25,36 +26,50 @@ const cormorant = Cormorant({
   style: ['italic']
 });
 
-const poppins = Poppins({
-  variable: '--font-button-face',
-  subsets: ['latin'],
-  weight: ['400', '500']
-});
+const SITE_URL = 'https://www.chikchik.in';
+const SITE_TITLE = 'Chikchik | Designer Lighters India – Retro Matchbox Art Jet Lighters';
+const SITE_DESCRIPTION = 'Shop designer lighters with a 90s soul. Vintage Indian matchbox art on refillable jet-flame and flip-top lighters, gift-boxed and shipped across India.';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.hevaelegance.com'),
-  title: 'Heva Elegance | Indian traditional wear brand',
-  description: 'Heva Elegance is an Indian traditional wear brand offering festive saree collections, silk sarees for festivals, and cotton kurtas for everyday wear. Discover designer sarees online and authentic kurtas for women, combining cultural heritage with modern style',
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  applicationName: 'Chikchik',
+  category: 'shopping',
   keywords: [
-    'Heva Elegance',
-    'Indian traditional wear',
-    'festive saree collection',
-    'silk sarees for festivals',
-    'designer sarees online',
-    'cotton kurtas for women',
-    'kurta sets'
+    'Chikchik',
+    'designer lighters',
+    'designer lighters India',
+    'buy lighter online India',
+    'jet lighter',
+    'torch lighter',
+    'windproof lighter',
+    'refillable lighter',
+    'flip top lighter',
+    'metal lighter',
+    'retro lighter',
+    'vintage matchbox art',
+    'Indian matchbox label',
+    'collectible lighters',
+    'lighter gift for men',
+    'gift lighter India'
   ],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 }
+  },
   openGraph: {
-    title: 'Heva Elegance | Indian traditional wear brand',
-    description: 'Heva Elegance is an Indian traditional wear brand offering festive saree collections, silk sarees for festivals, and cotton kurtas for everyday wear. Discover designer sarees online and authentic kurtas for women, combining cultural heritage with modern style',
-    url: 'https://www.hevaelegance.com',
-    siteName: 'Heva Elegance',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: 'Chikchik',
     images: [
       {
-        url: '/images/hero.jpg',
+        url: '/images/og.jpg',
         width: 1200,
         height: 630,
-        alt: 'Heva Elegance'
+        alt: 'Chikchik designer lighters with vintage matchbox art'
       }
     ],
     locale: 'en_IN',
@@ -62,9 +77,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Heva Elegance | Indian traditional wear brand',
-    description: 'Heva Elegance is an Indian traditional wear brand offering festive saree collections, silk sarees for festivals, and cotton kurtas for everyday wear. Discover designer sarees online and authentic kurtas for women, combining cultural heritage with modern style',
-    images: ['/images/hero.jpg']
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ['/images/og.jpg']
   }
 };
 
@@ -73,26 +88,51 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const organizationSchema = {
+  // Store + website structured data, shared by every page
+  const siteSchema = {
     '@context': 'https://schema.org',
-    '@type': 'ClothingStore',
-    name: 'Heva Elegance',
-    url: 'https://www.hevaelegance.com',
-    logo: 'https://static.wixstatic.com/media/80e345_3336b58c16684240b719821a70eb70a3~mv2.png',
-    description: 'Heva Elegance is an Indian traditional wear brand offering festive saree collections, silk sarees for festivals, and cotton kurtas for everyday wear. Discover designer sarees online and authentic kurtas for women, combining cultural heritage with modern style',
-    priceRange: '₹₹',
-    address: {
-      '@type': 'PostalAddress',
-      addressCountry: 'IN'
-    }
+    '@graph': [
+      {
+        '@type': 'OnlineStore',
+        '@id': `${SITE_URL}/#store`,
+        name: 'Chikchik',
+        url: SITE_URL,
+        logo: `${SITE_URL}/images/logo.png`,
+        image: `${SITE_URL}/images/og.jpg`,
+        description: SITE_DESCRIPTION,
+        slogan: 'Designer lighters with a 90s soul',
+        telephone: LEGAL.whatsapp,
+        email: LEGAL.email,
+        priceRange: '₹₹',
+        currenciesAccepted: 'INR',
+        areaServed: { '@type': 'Country', name: 'India' },
+        address: { '@type': 'PostalAddress', addressCountry: 'IN' },
+        contactPoint: {
+          '@type': 'ContactPoint',
+          contactType: 'customer service',
+          telephone: LEGAL.whatsapp,
+          email: LEGAL.email,
+          areaServed: 'IN',
+          availableLanguage: ['English', 'Hindi']
+        }
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: 'Chikchik',
+        inLanguage: 'en-IN',
+        publisher: { '@id': `${SITE_URL}/#store` }
+      }
+    ]
   };
 
   return (
-    <html lang="en" className={`${instrument.variable} ${figtree.variable} ${cormorant.variable} ${poppins.variable}`}>
+    <html lang="en-IN" className={`${poppins.variable} ${oswald.variable} ${cormorant.variable}`}>
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteSchema) }}
         />
       </head>
       <body>

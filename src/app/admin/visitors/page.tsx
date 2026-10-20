@@ -154,7 +154,7 @@ export default function AdminVisitorsPage() {
 
   const exportLeads = () => {
     if (!data) return;
-    downloadCsv(`heva-phone-leads-${new Date().toISOString().slice(0, 10)}.csv`, [
+    downloadCsv(`chikchik-phone-leads-${new Date().toISOString().slice(0, 10)}.csv`, [
       ['Phone', 'Name', 'WhatsApp opt-in', 'Source', 'Country', 'Consent given', 'Policy version'],
       ...data.leads.map((l) => [l.phone, l.name || '', l.whatsappOptIn ? 'Yes' : 'No', l.source, l.country, new Date(l.t).toISOString(), l.policyVersion])
     ]);

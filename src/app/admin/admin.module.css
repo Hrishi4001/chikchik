@@ -5,7 +5,7 @@
   --a-ink: #2b2418;
   --a-ink-2: #5c5243;
   --a-muted: #8e8880;
-  --a-brand: #580F00;
+  --a-brand: #111111;
   --a-brand-soft: #f1ece1;
   --a-good: #1f7a4d;
   --a-good-bg: #e7f4ec;
@@ -156,7 +156,7 @@
 }
 
 .btnPrimary:hover {
-  background: #3D0A00;
+  background: #F0BC00;
 }
 
 .btnDanger {

@@ -3,42 +3,40 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  Heart, 
-  Share2, 
-  Truck, 
-  ChevronRight, 
-  ChevronLeft, 
-  X, 
-  Plus, 
-  Minus, 
-  Check, 
-  Maximize2,
-  Star,
+import {
+  Heart,
+  Share2,
+  Truck,
+  ChevronRight,
+  ChevronLeft,
+  X,
+  Plus,
+  Mail,
+  Gift,
+  Lock,
+  ShieldCheck,
   CheckCircle2,
   AlarmClock
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { Product, SizeOption } from '@/lib/types';
-import { LEGAL, SIZE_CHART } from '@/lib/legal';
+import { LEGAL } from '@/lib/legal';
 import ProductCard from '@/components/product/ProductCard';
 import ProductReviews, { Stars } from '@/components/product/ProductReviews';
 import { averageRating, useReviews } from '@/lib/reviews';
 
-// Catalog uses "XXL"; the size chart uses "2XL"
-const chartSize = (size: string) => (size === 'XXL' ? '2XL' : size);
 
 function deliveryDate(days: number) {
   return new Date(Date.now() + days * 86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 }
 
 export default function ProductDetail({ slug }: { slug: string }) {
-  const { products, hydrated } = useStore();
+  const { products, productsLoaded } = useStore();
   const product = products.find((p) => p.slug === slug);
 
   if (!product) {
     // Admin-added products only exist after the browser catalog loads
-    if (!hydrated) return <main className="product-page-main" style={{ minHeight: '70vh' }} />;
+    if (!productsLoaded) return <main className="product-page-main" style={{ minHeight: '70vh' }} />;
     return (
       <main className="product-page-main" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '1rem', padding: '4rem 1.5rem' }}>
         <h1 className="product-page-title">We couldn&apos;t find that piece</h1>
@@ -71,14 +69,12 @@ function ProductView({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<SizeOption | null>(isFreeSizeProduct ? product.sizes[0] || 'Free Size' : null);
   const [sizeError, setSizeError] = useState(false);
   const sizeBlockRef = useRef<HTMLDivElement>(null);
-  const [quantity, setQuantity] = useState(1);
   const [pincodeInput, setPincodeInput] = useState('');
   const [pincodeResult, setPincodeResult] = useState<{ checked: boolean; serviceable: boolean; city?: string; days?: number } | null>(null);
-  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
-    details: true,
+    details: false,
     washcare: false,
     delivery: false,
     contact: false,
@@ -94,9 +90,9 @@ function ProductView({ product }: { product: Product }) {
 
   const isFavorited = isInWishlist(product.id);
   const isSoldOut = !product.inStock || product.stockCount <= 0;
-  const isFreeSize = product.sizes.length <= 1 && /free/i.test(product.sizes[0] || 'Free Size');
+  // Single pack size: show it as a fact instead of a picker
+  const isFreeSize = product.sizes.length <= 1;
   const savings = product.compareAtPrice && product.compareAtPrice > product.price ? product.compareAtPrice - product.price : 0;
-  const chartRows = SIZE_CHART.filter((r) => product.sizes.some((s) => chartSize(s) === r.size));
 
   // Track scroll position to reveal sticky Add to Cart bar
   useEffect(() => {
@@ -111,15 +107,14 @@ function ProductView({ product }: { product: Product }) {
   }, []);
 
   useEffect(() => {
-    if (!isSizeGuideOpen && !isLightboxOpen) return;
+    if (!isLightboxOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
-      setIsSizeGuideOpen(false);
       setIsLightboxOpen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isSizeGuideOpen, isLightboxOpen]);
+  }, [isLightboxOpen]);
 
   const toggleAccordion = (key: string) => {
     setOpenAccordions(prev => ({
@@ -144,13 +139,13 @@ function ProductView({ product }: { product: Product }) {
 
   const handleAddToCart = () => {
     const size = requireSize();
-    if (size) addToCart(product, size, undefined, quantity);
+    if (size) addToCart(product, size, undefined, 1);
   };
 
   const handleBuyNow = () => {
     const size = requireSize();
     if (!size) return;
-    addToCart(product, size, undefined, quantity);
+    addToCart(product, size, undefined, 1);
     router.push('/checkout');
   };
 
@@ -168,17 +163,21 @@ function ProductView({ product }: { product: Product }) {
   };
 
   const galleryTrackRef = useRef<HTMLDivElement>(null);
+  const galleryCount = product.images.length;
 
+  // Mobile carousel only; on desktop the track is a static grid and never scrolls
   const goToImage = (idx: number) => {
     const track = galleryTrackRef.current;
-    if (track) track.scrollTo({ left: idx * track.clientWidth, behavior: 'smooth' });
+    const target = track?.children[idx] as HTMLElement | undefined;
+    if (track && target) track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
     setSelectedImage(idx);
   };
 
   const handleGalleryScroll = () => {
     const track = galleryTrackRef.current;
-    if (!track) return;
-    const idx = Math.round(track.scrollLeft / track.clientWidth);
+    const first = track?.children[0] as HTMLElement | undefined;
+    if (!track || !first) return;
+    const idx = Math.min(galleryCount - 1, Math.round(track.scrollLeft / (first.offsetWidth + 8)));
     if (idx !== selectedImage) setSelectedImage(idx);
   };
 
@@ -187,198 +186,107 @@ function ProductView({ product }: { product: Product }) {
     setIsLightboxOpen(true);
   };
 
-  // Structured Data Schema for SEO
-  const productSchema = {
-    '@context': 'https://schema.org/',
-    '@type': 'Product',
-    name: product.title,
-    image: product.images,
-    description: product.description,
-    sku: product.id,
-    brand: {
-      '@type': 'Brand',
-      name: 'Heva Elegance'
-    },
-    offers: {
-      '@type': 'Offer',
-      url: `https://www.hevaelegance.com/product/${product.slug}`,
-      priceCurrency: 'INR',
-      price: product.price,
-      availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      itemCondition: 'https://schema.org/NewCondition'
-    },
-    ...(product.reviewCount > 0 && {
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: product.rating,
-        reviewCount: product.reviewCount
-      }
-    })
-  };
-
   // Same category first, in-stock first
   const relatedProducts = products
     .filter((p) => p.id !== product.id && p.category === product.category)
     .sort((a, b) => Number(b.inStock && b.stockCount > 0) - Number(a.inStock && a.stockCount > 0))
     .slice(0, 4);
 
-  return (
-    <main className="product-page-main">
-      {/* Product JSON-LD for Search Engines */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
-      />
+  const badges = [
+    { icon: <ShieldCheck size={26} strokeWidth={1.6} />, label: 'Solid metal build' },
+    { icon: <Gift size={26} strokeWidth={1.6} />, label: 'Gift-ready box' },
+    { icon: <Truck size={26} strokeWidth={1.6} />, label: 'Ships in 1–3 days' },
+    { icon: <Lock size={26} strokeWidth={1.6} />, label: 'Secure payment' }
+  ];
 
-      {/* 2. Main Product Hero (Gallery Left 58% + Sticky Details Right 42%) */}
-      <div className="product-hero-layout">
-        
-        {/* Left Column: Gallery */}
-        <div className="product-gallery-strip">
-          {/* Thumbnails list on left */}
-          <div className="product-thumbs-column">
+  const accordion = (key: string, title: string, body: React.ReactNode, id?: string) => (
+    <div className="pdp-accordion" id={id}>
+      <button className="pdp-accordion-header" onClick={() => toggleAccordion(key)} aria-expanded={openAccordions[key]}>
+        <span>{title}</span>
+        <span className={`pdp-accordion-icon ${openAccordions[key] ? 'is-open' : ''}`}><Plus size={14} /></span>
+      </button>
+      {openAccordions[key] && <div className="pdp-accordion-body">{body}</div>}
+    </div>
+  );
+
+  return (
+    <main className="pdp-main">
+
+      {/* Main Product Hero: image stack left, sticky details right (stacked on mobile) */}
+      <div className="pdp-layout">
+        {/* Gallery: one large image then a two-up grid on desktop; swipeable carousel on mobile */}
+        <div className="pdp-gallery">
+          <div
+            ref={galleryTrackRef}
+            className={`pdp-gallery-track ${galleryCount % 2 === 0 ? 'is-even' : ''}`}
+            onScroll={handleGalleryScroll}
+          >
             {product.images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => goToImage(idx)}
-                className={`product-thumb-button ${selectedImage === idx ? 'is-active' : ''}`}
-                aria-label={`View image ${idx + 1}`}
-              >
-                <img src={img} alt={`${product.title} view ${idx + 1}`} loading="lazy" />
+              <button key={idx} type="button" className="pdp-gallery-item" onClick={() => openLightbox(idx)} aria-label={`Zoom image ${idx + 1}`}>
+                <img
+                  src={img}
+                  alt={`${product.title}, designer lighter, view ${idx + 1} of ${galleryCount}`}
+                  fetchPriority={idx === 0 ? 'high' : undefined}
+                  loading={idx === 0 ? 'eager' : 'lazy'}
+                />
               </button>
             ))}
           </div>
 
-          {/* Large Main Image Display: swipeable track */}
-          <div className="product-main-frame">
-            <div
-              ref={galleryTrackRef}
-              className="product-main-track"
-              onScroll={handleGalleryScroll}
-            >
-              {product.images.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={img}
-                  alt={`${product.title} view ${idx + 1}`}
-                  fetchPriority={idx === 0 ? 'high' : undefined}
-                  loading={idx === 0 ? 'eager' : 'lazy'}
-                  onClick={() => openLightbox(idx)}
-                />
-              ))}
+          {galleryCount > 1 && (
+            <div className="pdp-gallery-counter">
+              <button type="button" onClick={() => goToImage(Math.max(0, selectedImage - 1))} disabled={selectedImage === 0} aria-label="Previous image">
+                <ChevronLeft size={16} />
+              </button>
+              <span>{selectedImage + 1}/{galleryCount}</span>
+              <button type="button" onClick={() => goToImage(Math.min(galleryCount - 1, selectedImage + 1))} disabled={selectedImage === galleryCount - 1} aria-label="Next image">
+                <ChevronRight size={16} />
+              </button>
             </div>
-
-            {product.images.length > 1 && (
-              <div className="gallery-dots">
-                {product.images.map((_, idx) => (
-                  <button
-                    key={idx}
-                    className={selectedImage === idx ? 'is-active' : ''}
-                    onClick={() => goToImage(idx)}
-                    aria-label={`Show image ${idx + 1} of ${product.images.length}`}
-                  />
-                ))}
-              </div>
-            )}
-
-            <button
-              className="gallery-expand-button"
-              onClick={() => openLightbox(selectedImage)}
-              aria-label="Expand image"
-            >
-              <Maximize2 size={18} />
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Right Column: Sticky Product Info */}
-        <div className="product-info-column">
-          {/* Brand Vendor Link */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Link href="/shop" className="product-vendor-badge">
-              Heva Elegance
-            </Link>
-            <button 
-              onClick={handleShare}
-              className="pdp-share-btn"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', color: '#666666' }}
-              title="Share creation"
-            >
-              <Share2 size={14} />
-              <span>Share</span>
-            </button>
-          </div>
+        {/* Details panel */}
+        <div className="pdp-info">
+          <nav className="pdp-breadcrumb" aria-label="Breadcrumb">
+            <Link href="/">Home</Link>
+            <span aria-hidden="true">•</span>
+            <Link href="/shop">Shop</Link>
+            <span aria-hidden="true">•</span>
+            <span className="is-current">{product.title}</span>
+          </nav>
 
-          {/* Product Title */}
-          <h1 className="product-page-title">
-            {product.title}
-          </h1>
+          <h1 className="pdp-title">{product.title}</h1>
+
+          <div className="pdp-price">
+            <span>{formatPrice(product.price)}</span>
+            {savings > 0 && (
+              <>
+                <s>{formatPrice(product.compareAtPrice!)}</s>
+                <em>{Math.round((savings / product.compareAtPrice!) * 100)}% off</em>
+              </>
+            )}
+          </div>
+          <p className="pdp-tax">Tax included. Free shipping above {formatPrice(LEGAL.freeShippingThreshold)}.</p>
 
           {allReviews.length > 0 && (
             <button
               type="button"
+              className="pdp-rating"
               onClick={() => {
                 setOpenAccordions((prev) => ({ ...prev, reviews: true }));
                 setTimeout(() => document.getElementById('product-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
               }}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '-0.5rem' }}
             >
               <Stars value={Math.round(reviewAverage)} size={13} />
               <span>{reviewAverage.toFixed(1)} · {allReviews.length} {allReviews.length === 1 ? 'review' : 'reviews'}</span>
             </button>
           )}
 
-          {/* Price & Taxes Notice */}
-          <div className="product-price-container">
-            <div className="product-regular-price" style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.6rem' }}>
-              <span>{formatPrice(product.price)}</span>
-              {savings > 0 && (
-                <>
-                  <span style={{ fontSize: '0.9em', color: 'var(--text-muted)', textDecoration: 'line-through', fontWeight: 400 }}>
-                    {formatPrice(product.compareAtPrice!)}
-                  </span>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.04em', color: '#1B4435', backgroundColor: '#E8F3EC', padding: '0.2rem 0.5rem', borderRadius: '3px' }}>
-                    {Math.round((savings / product.compareAtPrice!) * 100)}% OFF
-                  </span>
-                </>
-              )}
-            </div>
-            <p className="product-taxes-notice">
-              Inclusive of all taxes. Free shipping in India on orders above {formatPrice(LEGAL.freeShippingThreshold)}, otherwise {formatPrice(LEGAL.standardShippingFee)}.
-            </p>
-          </div>
-
-          <hr className="product-divider-line" />
-
-          {/* Short Description */}
-          <p className="product-lead-description">
-            {product.description}
-          </p>
-
-          <dl className="product-facts">
-            <div>
-              <dt>Colour</dt>
-              <dd>
-                <span className="variant-select-swatch" style={{ position: 'static', backgroundColor: product.colorHex }} />
-                {product.color}
-              </dd>
-            </div>
-            <div>
-              <dt>Fabric</dt>
-              <dd>{product.fabric}</dd>
-            </div>
-            {isFreeSize && (
-              <div>
-                <dt>Size</dt>
-                <dd>Free size</dd>
-              </div>
-            )}
-          </dl>
-
           {!isFreeSize && (
             <div className="variant-option-block" ref={sizeBlockRef}>
               <span className="variant-label-title" id="sizeLabel" style={sizeError ? { color: '#B3261E' } : undefined}>
-                {selectedSize ? `Size: ${selectedSize}` : sizeError ? 'Please select a size' : 'Select size'}
+                {selectedSize ? `Option: ${selectedSize}` : sizeError ? 'Please select an option' : 'Select an option'}
               </span>
               <div className="size-pill-row" role="radiogroup" aria-labelledby="sizeLabel">
                 {product.sizes.map((sz) => (
@@ -400,299 +308,127 @@ function ProductView({ product }: { product: Product }) {
             </div>
           )}
 
-          {!isFreeSize && (
-            <p style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.35rem 0.75rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              <button
-                id="sizeGuideTrigger"
-                className="size-guide-trigger-link"
-                onClick={() => setIsSizeGuideOpen(true)}
-              >
-                Size Guide
-              </button>
-              <span>Between sizes? Pick the larger one — free size exchange within {LEGAL.returnWindowDays} days.</span>
-            </p>
+          {!isSoldOut && product.stockCount <= 5 && (
+            <p className="pdp-stock"><AlarmClock size={15} /> Only {product.stockCount} left</p>
           )}
 
-          {/* Buy Action Group: Quantity + Add to Cart */}
-          <div ref={mainBuyCtaRef} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div className="product-cta-group">
-              {/* Quantity pill */}
-              <div className="qty-control-wrapper" hidden={isSoldOut} style={isSoldOut ? { display: 'none' } : undefined}>
-                <button 
-                  className="qty-btn"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  aria-label="Decrease quantity"
-                >
-                  <Minus size={13} />
-                </button>
-                <span className="qty-value">{quantity}</span>
-                <button 
-                  className="qty-btn"
-                  onClick={() => setQuantity(Math.min(Math.max(1, product.stockCount), quantity + 1))}
-                  aria-label="Increase quantity"
-                >
-                  <Plus size={13} />
-                </button>
-              </div>
-
-              {/* Add to Cart button */}
-              <button
-                onClick={handleAddToCart}
-                className="btn-add-to-cart"
-                disabled={isSoldOut}
-                style={isSoldOut ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
-              >
-                {isSoldOut ? 'Sold out' : 'Add to cart'}
-              </button>
-            </div>
-
+          <div ref={mainBuyCtaRef} className="pdp-ctas">
+            <button onClick={handleAddToCart} className="pdp-btn pdp-btn--cart" disabled={isSoldOut}>
+              {isSoldOut ? 'Sold out' : 'Add to cart'}
+            </button>
             {isSoldOut ? (
               <a
-                className="btn-buy-now"
+                className="pdp-btn pdp-btn--buy"
                 href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi! Please let me know when "${product.title}" is back in stock.`)}`}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 Notify me on WhatsApp
               </a>
             ) : (
-              <button
-                onClick={handleBuyNow}
-                className="btn-buy-now"
-              >
-                Buy it now
-              </button>
+              <button onClick={handleBuyNow} className="pdp-btn pdp-btn--buy">Buy it now</button>
             )}
           </div>
 
-          {/* Stock + Service checklist */}
-          <ul className="product-service-list">
-            {!isSoldOut && product.stockCount <= 5 && (
-              <li className="is-stock">
-                <AlarmClock size={16} />
-                <span>Only {product.stockCount} left</span>
+          <div className="pdp-icon-row">
+            <button type="button" onClick={() => toggleWishlist(product.id)} aria-label={isFavorited ? 'Remove from wishlist' : 'Add to wishlist'} aria-pressed={isFavorited}>
+              <Heart size={16} fill={isFavorited ? 'currentColor' : 'none'} />
+            </button>
+            <a href={`mailto:?subject=${encodeURIComponent(product.title)}&body=${encodeURIComponent(`https://${LEGAL.website}/product/${product.slug}`)}`} aria-label="Share by email">
+              <Mail size={16} />
+            </a>
+            <button type="button" onClick={handleShare} aria-label="Share">
+              <Share2 size={16} />
+            </button>
+          </div>
+
+          <p className="pdp-description">{product.description}</p>
+
+          <ul className="pdp-badges">
+            {badges.map((b) => (
+              <li key={b.label}>
+                {b.icon}
+                <span>{b.label}</span>
               </li>
-            )}
-            <li><Check size={15} /><span>Ships within 1–3 working days</span></li>
-            <li><Check size={15} /><span>Cash on delivery &amp; secure online payment</span></li>
-            <li><Check size={15} /><span>{LEGAL.returnWindowDays}-day easy returns &amp; exchange</span></li>
+            ))}
           </ul>
 
-          {/* Wishlist Action */}
-          <button
-            onClick={() => toggleWishlist(product.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              fontSize: '0.82rem',
-              color: isFavorited ? 'var(--color-brand-maroon, #580F00)' : '#666666',
-              padding: '0.4rem 0',
-              cursor: 'pointer'
-            }}
-          >
-            <Heart size={16} fill={isFavorited ? 'var(--color-brand-maroon, #580F00)' : 'none'} />
-            <span>{isFavorited ? 'Saved in Wishlist' : 'Add to Wishlist'}</span>
-          </button>
+          <div className="pdp-accordions">
+            {accordion('details', 'Product details', (
+              <ul className="pdp-detail-list">
+                {[
+                  ['Material & finish', product.fabric],
+                  ['Type', product.craft],
+                  ['Colour', product.color],
+                  ['Made in', product.origin],
+                  ...product.craftsmanshipDetails.map((d) => ['', d])
+                ].map(([label, value], i) => (
+                  <li key={i}>
+                    <CheckCircle2 size={14} />
+                    <span>{label && <strong>{label}: </strong>}{value}</span>
+                  </li>
+                ))}
+              </ul>
+            ))}
 
-          <hr className="product-divider-line" />
+            {accordion('washcare', 'Care & safety', (
+              <ul className="pdp-bullets">
+                {product.washCare.map((w) => <li key={w}>{w}</li>)}
+              </ul>
+            ))}
 
-          {/* Estimated Delivery Pincode Checker */}
-          <div className="pincode-estimator-box">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', fontWeight: 600, color: '#580F00' }}>
-              <Truck size={14} />
-              <span>ESTIMATE DELIVERY TO YOUR CITY</span>
-            </div>
-            <form onSubmit={handlePincodeCheck} className="pincode-input-row">
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="Enter 6-digit PIN code"
-                aria-label="PIN code"
-                value={pincodeInput}
-                onChange={(e) => setPincodeInput(e.target.value.replace(/\D/g, ''))}
-                className="pincode-text-input"
-              />
-              <button type="submit" className="pincode-check-btn">
-                Check
-              </button>
-            </form>
-
-            {pincodeResult?.checked && (
-              <div style={{ fontSize: '0.78rem', marginTop: '0.2rem' }}>
-                {pincodeResult.serviceable ? (
-                  // Same estimate as checkout's standard delivery: courier days + 2 days processing
-                  <p style={{ color: '#0F6938', fontWeight: 500 }}>
-                    ✓ Delivery {pincodeResult.city ? `to ${pincodeResult.city} ` : `to ${pincodeInput} `}by {deliveryDate((pincodeResult.days ?? 4) + 2)}
-                  </p>
-                ) : (
-                  <p style={{ color: '#B3261E' }}>
-                    Please enter a valid 6-digit PIN code.
-                  </p>
+            {accordion('delivery', 'Delivery & returns', (
+              <>
+                <p>
+                  <strong>Ships within 1–3 working days</strong>, delivered in 3–7 working days across India. Free shipping on orders above {formatPrice(LEGAL.freeShippingThreshold)}. <Link href="/pages/shipping-policy">Shipping policy</Link>
+                </p>
+                <p>
+                  <strong>Damaged or wrong item?</strong> Tell us within {LEGAL.returnWindowDays} days of delivery with photos of the unused product and we&apos;ll replace or refund it. Lighters that have been filled or used can&apos;t be returned for safety reasons. <Link href="/pages/return-exchange-policy">Return policy</Link>
+                </p>
+                <form onSubmit={handlePincodeCheck} className="pdp-pincode">
+                  <Truck size={15} />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="Check delivery: 6-digit PIN code"
+                    aria-label="PIN code"
+                    value={pincodeInput}
+                    onChange={(e) => setPincodeInput(e.target.value.replace(/\D/g, ''))}
+                  />
+                  <button type="submit">Check</button>
+                </form>
+                {pincodeResult?.checked && (
+                  pincodeResult.serviceable ? (
+                    // Same estimate as checkout's standard delivery: courier days + 2 days processing
+                    <p style={{ color: '#0F6938', fontWeight: 500 }}>
+                      ✓ Delivery {pincodeResult.city ? `to ${pincodeResult.city} ` : `to ${pincodeInput} `}by {deliveryDate((pincodeResult.days ?? 4) + 2)}
+                    </p>
+                  ) : (
+                    <p style={{ color: '#B3261E' }}>Please enter a valid 6-digit PIN code.</p>
+                  )
                 )}
-              </div>
-            )}
-          </div>
+              </>
+            ))}
 
+            {accordion('contact', 'Talk to us', (
+              <p>
+                Questions about finishes, refills or gifting? WhatsApp us at{' '}
+                <a href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}`}>{LEGAL.whatsapp}</a>{' '}
+                or email <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>. We reply within one business day.
+              </p>
+            ))}
+
+            {accordion('reviews', allReviews.length > 0 ? `Reviews (${allReviews.length})` : 'Write a review', (
+              <ProductReviews product={product} reviews={allReviews} onSubmit={addReview} />
+            ), 'product-reviews')}
+          </div>
         </div>
       </div>
 
-      {/* 3. Section 2: "More Information" (Split Layout with Editorial Image & Accordions) */}
-      <section className="section-more-info">
-        <div className="more-info-layout">
-          {/* Editorial portrait image */}
-          {product.images[2] && (
-            <div className="more-info-editorial-media">
-              <img src={product.images[2]} alt={`${product.title} detail`} loading="lazy" />
-            </div>
-          )}
-
-          {/* Right column: Heading & Accordions */}
-          <div className="more-info-content">
-            <h2 className="more-info-heading">
-              More Information
-            </h2>
-
-            {/* Accordion 1: Details */}
-            <div className="openform-accordion-item">
-              <button 
-                className="openform-accordion-header"
-                onClick={() => toggleAccordion('details')}
-                aria-expanded={openAccordions.details}
-              >
-                <span>Details</span>
-                <span className={`openform-accordion-icon ${openAccordions.details ? 'is-open' : ''}`}>
-                  <Plus size={16} />
-                </span>
-              </button>
-              {openAccordions.details && (
-                <div className="openform-accordion-body">
-                  <p style={{ marginBottom: '0.8rem' }}>{product.description}</p>
-                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingLeft: 0 }}>
-                    {[
-                      ['Fabric', product.fabric],
-                      ['Craft', product.craft],
-                      ['Colour', product.color],
-                      ['Sizes', isFreeSize ? 'Free size' : product.sizes.join(', ')],
-                      ['Made in', product.origin],
-                      ...product.craftsmanshipDetails.filter((d) => !/curated by/i.test(d)).map((d) => ['', d])
-                    ].map(([label, value], i) => (
-                      <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <CheckCircle2 size={14} color="var(--color-brand-maroon, #580F00)" />
-                        <span>{label && <strong>{label}: </strong>}{value}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 2: Washcare */}
-            <div className="openform-accordion-item">
-              <button 
-                className="openform-accordion-header"
-                onClick={() => toggleAccordion('washcare')}
-                aria-expanded={openAccordions.washcare}
-              >
-                <span>Washcare</span>
-                <span className={`openform-accordion-icon ${openAccordions.washcare ? 'is-open' : ''}`}>
-                  <Plus size={16} />
-                </span>
-              </button>
-              {openAccordions.washcare && (
-                <div className="openform-accordion-body">
-                  <ul style={{ paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                    {product.washCare.map((w) => <li key={w}>{w}</li>)}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 3: Delivery & Returns */}
-            <div className="openform-accordion-item">
-              <button 
-                className="openform-accordion-header"
-                onClick={() => toggleAccordion('delivery')}
-                aria-expanded={openAccordions.delivery}
-              >
-                <span>Delivery &amp; Returns</span>
-                <span className={`openform-accordion-icon ${openAccordions.delivery ? 'is-open' : ''}`}>
-                  <Plus size={16} />
-                </span>
-              </button>
-              {openAccordions.delivery && (
-                <div className="openform-accordion-body">
-                  <p style={{ marginBottom: '0.6rem' }}>
-                    <strong>Ships within 1–3 working days</strong>, delivered in 3–7 working days across India. Free shipping on orders above {formatPrice(LEGAL.freeShippingThreshold)}. <Link href="/pages/shipping-policy" style={{ textDecoration: 'underline' }}>Shipping policy</Link>
-                  </p>
-                  <p>
-                    <strong>Easy {LEGAL.returnWindowDays}-day returns &amp; exchange:</strong> Unused pieces with tags intact can be returned or exchanged within {LEGAL.returnWindowDays} days of delivery. <Link href="/pages/return-exchange-policy" style={{ textDecoration: 'underline' }}>Return policy</Link>
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 4: Contact us */}
-            <div className="openform-accordion-item">
-              <button 
-                className="openform-accordion-header"
-                onClick={() => toggleAccordion('contact')}
-                aria-expanded={openAccordions.contact}
-              >
-                <span>Contact us</span>
-                <span className={`openform-accordion-icon ${openAccordions.contact ? 'is-open' : ''}`}>
-                  <Plus size={16} />
-                </span>
-              </button>
-              {openAccordions.contact && (
-                <div className="openform-accordion-body">
-                  <p style={{ marginBottom: '0.6rem' }}>
-                    Questions about fit, fabric or delivery? WhatsApp us at{' '}
-                    <a href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}`} style={{ textDecoration: 'underline' }}>{LEGAL.whatsapp}</a>{' '}
-                    or email <a href={`mailto:${LEGAL.email}`} style={{ textDecoration: 'underline' }}>{LEGAL.email}</a>. We reply within one business day.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 5: Product Reviews */}
-            <div className="openform-accordion-item" id="product-reviews">
-              <button 
-                className="openform-accordion-header"
-                onClick={() => toggleAccordion('reviews')}
-                aria-expanded={openAccordions.reviews}
-              >
-                <span>{allReviews.length > 0 ? `Reviews (${allReviews.length})` : 'Write a review'}</span>
-                <span className={`openform-accordion-icon ${openAccordions.reviews ? 'is-open' : ''}`}>
-                  <Plus size={16} />
-                </span>
-              </button>
-              {openAccordions.reviews && (
-                <div className="openform-accordion-body">
-                  <ProductReviews product={product} reviews={allReviews} onSubmit={addReview} />
-                </div>
-              )}
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Section 3: "You may also like" */}
+      {/* You may also like */}
       {relatedProducts.length > 0 && (
-        <section className="section-recommendations">
-          <div className="recommendations-header">
-            <h2 className="recommendations-title">
-              You may also like
-            </h2>
-          </div>
-
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-            gap: '1.5rem' 
-          }}>
+        <section className="pdp-related">
+          <h2 className="pdp-related-title">You may also like</h2>
+          <div className="pdp-related-grid">
             {relatedProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
@@ -708,7 +444,7 @@ function ProductView({ product }: { product: Product }) {
           </div>
           <div className="sticky-cart-meta">
             <span className="sticky-cart-title">{product.title}</span>
-            <span className="sticky-cart-sub">{product.color}{isFreeSize ? '' : selectedSize ? ` · Size ${selectedSize}` : ' · Select a size'}</span>
+            <span className="sticky-cart-sub">{product.categoryLabel}{isFreeSize ? ` · ${product.sizes[0]}` : selectedSize ? ` · ${selectedSize}` : ' · Select an option'}</span>
           </div>
         </div>
 
@@ -722,83 +458,11 @@ function ProductView({ product }: { product: Product }) {
             disabled={isSoldOut}
             style={{ width: '180px', height: '44px', ...(isSoldOut && { opacity: 0.45, cursor: 'not-allowed' }) }}
           >
-            {isSoldOut ? 'Sold out' : selectedSize ? 'Add to cart' : 'Select size'}
+            {isSoldOut ? 'Sold out' : selectedSize ? 'Add to cart' : 'Select an option'}
           </button>
         </div>
       </div>
 
-      {/* 6. Size Guide Modal Popup  */}
-      {isSizeGuideOpen && (
-        <div className="modal-backdrop" onClick={() => setIsSizeGuideOpen(false)}>
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '95%',
-              maxWidth: '640px',
-              backgroundColor: '#FFFFFF',
-              borderRadius: '6px',
-              padding: '2.5rem',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
-              position: 'relative',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}
-          >
-            <button 
-              onClick={() => setIsSizeGuideOpen(false)}
-              style={{
-                position: 'absolute',
-                top: '1.25rem',
-                right: '1.25rem',
-                background: 'none',
-                border: 'none',
-                fontSize: '1.5rem',
-                cursor: 'pointer',
-                color: '#666666'
-              }}
-              aria-label="Close size guide"
-            >
-              <X size={20} />
-            </button>
-
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <span style={{ fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-brand-maroon, #580F00)', fontWeight: 600 }}>
-                Garment Measurement Guide
-              </span>
-              <h3 style={{ fontFamily: 'var(--font-heading-family)', fontSize: '1.6rem', fontWeight: 400, marginTop: '0.25rem', color: '#580F00' }}>
-                Size Chart
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: '#666666', marginTop: '0.2rem' }}>
-                All measurements shown are actual garment measurements in inches.
-              </p>
-            </div>
-
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'center' }}>
-              <thead>
-                <tr style={{ borderBottom: '1.5px solid #580F00', color: '#580F00', fontWeight: 600 }}>
-                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }}>Size</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>Bust</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>Waist</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>Hip</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>Length</th>
-                </tr>
-              </thead>
-              <tbody>
-                {chartRows.map((r) => (
-                  <tr key={r.size} style={{ borderBottom: '1px solid #EBEBEB' }}>
-                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 600 }}>{product.sizes.find((sz) => chartSize(sz) === r.size)}</td>
-                    <td>{r.bust}&quot;</td><td>{r.waist}&quot;</td><td>{r.hip}&quot;</td><td>{r.length}&quot;</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#FAF8F5', borderRadius: '4px', fontSize: '0.8rem', color: '#444444', lineHeight: 1.6 }}>
-              <strong>Between sizes?</strong> Message us on WhatsApp at {LEGAL.whatsapp} and we&apos;ll help you pick the right fit. <Link href="/pages/size-chart" style={{ textDecoration: 'underline' }}>How to measure</Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 7. Lightbox Zoom Fullscreen Modal */}
       {isLightboxOpen && (

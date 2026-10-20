@@ -46,7 +46,7 @@ export default function OrderSuccessPage({ params }: PageProps) {
             width: '64px',
             height: '64px',
             borderRadius: '50%',
-            backgroundColor: '#F0F7F2',
+            backgroundColor: '#FFF4C2',
             color: 'var(--accent-emerald)',
             display: 'flex',
             alignItems: 'center',
@@ -87,7 +87,7 @@ export default function OrderSuccessPage({ params }: PageProps) {
               Order Timeline
             </h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Current Status: <strong style={{ color: 'var(--accent-terracotta)' }}>{order.fulfillmentStatus}</strong>
+              Current Status: <strong style={{ color: '#111111' }}>{order.fulfillmentStatus}</strong>
             </p>
           </div>
           {order.trackingNumber && (
@@ -133,7 +133,7 @@ export default function OrderSuccessPage({ params }: PageProps) {
         {/* Shipping Destination */}
         <div style={{ backgroundColor: '#FFFFFF', padding: '1.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
-            <MapPin size={16} color="var(--accent-terracotta)" />
+            <MapPin size={16} color="#111111" />
             <h4 style={{ fontSize: '0.82rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Insured Delivery Destination
             </h4>
@@ -164,7 +164,7 @@ export default function OrderSuccessPage({ params }: PageProps) {
               <span>{formatPrice(order.subtotal)}</span>
             </div>
             {order.discount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--accent-terracotta)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#111111' }}>
                 <span>Privilege Discount</span>
                 <span>- {formatPrice(order.discount)}</span>
               </div>

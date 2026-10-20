@@ -36,7 +36,7 @@ export default function AdminPaymentsPage() {
   const { orders } = useStore();
   const [range, setRange] = useState<Range>(30);
   const [filter, setFilter] = useState<'all' | TxStatus>('all');
-  const [gateway, setGateway] = useState<{ mode: 'razorpay' | 'mock' } | null>(null);
+  const [gateway, setGateway] = useState<{ mode: 'cashfree' | 'razorpay' | 'mock'; cashfreeEnv?: string | null } | null>(null);
 
   useEffect(() => {
     fetch('/api/payments/config')
@@ -104,9 +104,11 @@ export default function AdminPaymentsPage() {
         title="Payments"
         subtitle={
           gateway
-            ? gateway.mode === 'razorpay'
-              ? 'Razorpay connected (live keys)'
-              : 'Razorpay not configured — checkout runs in test mode'
+            ? gateway.mode === 'cashfree'
+              ? `Cashfree connected (${gateway.cashfreeEnv})`
+              : gateway.mode === 'razorpay'
+                ? 'Razorpay connected (live keys)'
+                : 'No gateway configured — checkout runs in test mode'
             : 'Checking gateway…'
         }
         actions={

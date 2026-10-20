@@ -7,17 +7,16 @@ export interface CartMilestone {
 }
 
 export const CART_MILESTONES: CartMilestone[] = [
-  { threshold: 699, label: 'Free Shipping', perk: 'free shipping', discount: 0, freeShipping: true },
-  { threshold: 1300, label: '₹200 Off', perk: '₹200 off', discount: 200, freeShipping: true }
+  { threshold: 499, label: 'Free Shipping', perk: 'free shipping', discount: 0, freeShipping: true },
+  { threshold: 999, label: '₹100 Off', perk: '₹100 off', discount: 100, freeShipping: true }
 ];
 
-export const STANDARD_SHIPPING_FEE = 79;
-export const EXPRESS_SHIPPING_FEE = 199;
-export const COD_LIMIT = 50000;
+export const STANDARD_SHIPPING_FEE = 59;
+export const EXPRESS_SHIPPING_FEE = 149;
 
 export const PROMO_CODES: Record<string, { pct: number; message: string; firstOrderOnly?: boolean }> = {
-  ELEGANCE: { pct: 0.1, message: 'Promo code applied: 10% off' },
-  ROYAL10: { pct: 0.1, message: 'Promo code applied: 10% off' },
+  CHIKCHIK10: { pct: 0.1, message: 'Promo code applied: 10% off' },
+  NATURE10: { pct: 0.1, message: 'Promo code applied: 10% off' },
   FIRST15: { pct: 0.15, message: 'First order special: 15% off applied', firstOrderOnly: true }
 };
 

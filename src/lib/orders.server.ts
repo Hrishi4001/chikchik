@@ -1,9 +1,19 @@
 import { randomBytes } from 'node:crypto';
-import { INITIAL_PRODUCTS, PINCODE_DATABASE } from './data';
-import { COD_LIMIT, PROMO_CODES, computeTotals } from './cartRewards';
+import { PINCODE_DATABASE } from './data';
+import { listProducts } from './products.server';
+import { PROMO_CODES, computeTotals } from './cartRewards';
 import { kvGet, kvList, kvSet } from './kv.server';
-import { createGatewayOrder, getGatewayMode } from './payments/razorpay.server';
-import type { Order, OrderEvent, PaymentAttempt, PaymentMethod, PlaceOrderInput } from './types';
+import { createGatewayOrder } from './payments/razorpay.server';
+import {
+  createCashfreeOrder,
+  fetchCashfreeOrderExtended,
+  getCashfreeEnv,
+  getCashfreeOutcome,
+  isOneClickEnabled,
+  type CashfreeEnv
+} from './payments/cashfree.server';
+import { getGatewayMode, type ActiveGateway } from './payments/gateway.server';
+import type { OneClickOrderInput, Order, OrderEvent, PaymentAttempt, PaymentMethod, PlaceOrderInput } from './types';
 
 export type { PlaceOrderInput };
 
@@ -16,10 +26,13 @@ export class OrderError extends Error {
 }
 
 export interface GatewayStart {
-  mode: 'razorpay' | 'mock';
+  mode: ActiveGateway;
   keyId: string | null;
   gatewayOrderId: string;
   amount: number; // paise
+  /** Cashfree only: session handed to the browser SDK. */
+  paymentSessionId?: string;
+  cashfreeEnv?: CashfreeEnv;
 }
 
 const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -28,7 +41,7 @@ export const normalisePhone = (phone: string) => phone.replace(/\D/g, '').replac
 export function pincodeInfo(pincode: string) {
   if (PINCODE_DATABASE[pincode]) return { ...PINCODE_DATABASE[pincode], serviceable: true };
   // Unlisted PINs ship via the national courier network
-  return /^[1-9]\d{5}$/.test(pincode) ? { city: '', state: '', days: 4, cod: true, serviceable: true } : null;
+  return /^[1-9]\d{5}$/.test(pincode) ? { city: '', state: '', days: 4, serviceable: true } : null;
 }
 
 function addDays(days: number) {
@@ -54,28 +67,12 @@ const withEvent = (order: Order, event: Omit<OrderEvent, 'at'>): Order => ({
 });
 
 /** Validates the cart against the server catalog and prices it; the browser's numbers are never trusted. */
-export async function placeOrder(raw: PlaceOrderInput): Promise<{ order: Order; gateway?: GatewayStart }> {
-  const name = str(raw?.customer?.name, 80);
-  const email = str(raw?.customer?.email, 120);
-  const phone = normalisePhone(str(raw?.customer?.phone, 20));
-  const street = str(raw?.address?.street, 200);
-  const city = str(raw?.address?.city, 80);
-  const state = str(raw?.address?.state, 80);
-  const pincode = str(raw?.address?.pincode, 6);
-  const shippingMethod = raw?.shippingMethod === 'express' ? 'express' : 'standard';
-  const paymentMethod = raw?.paymentMethod === 'COD' ? 'COD' : 'online';
-  const promoCode = str(raw?.promoCode, 30).toUpperCase() || undefined;
-
-  if (name.length < 2) throw new OrderError('Enter your full name');
-  if (phone.length !== 10) throw new OrderError('Enter a 10-digit mobile number');
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new OrderError('Enter a valid email address');
-  if (street.length < 5 || !city || !state) throw new OrderError('Enter your full delivery address');
-  const pin = pincodeInfo(pincode);
-  if (!pin) throw new OrderError('Enter a valid 6-digit pincode');
-
+async function priceCart(rawItems: PlaceOrderInput['items'], promoCode: string | undefined, shippingMethod: 'standard' | 'express', phone: string) {
+  const raw = { items: rawItems };
   if (!Array.isArray(raw?.items) || raw.items.length === 0 || raw.items.length > 30) throw new OrderError('Your bag is empty');
+  const catalog = await listProducts();
   const items = raw.items.map((line) => {
-    const product = INITIAL_PRODUCTS.find((p) => p.id === line?.productId);
+    const product = catalog.find((p) => p.id === line?.productId);
     const quantity = Math.floor(Number(line?.quantity));
     if (!product) throw new OrderError('An item in your bag is no longer available');
     if (!product.inStock || product.stockCount <= 0) throw new OrderError(`"${product.title}" has sold out`);
@@ -107,12 +104,33 @@ export async function placeOrder(raw: PlaceOrderInput): Promise<{ order: Order; 
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const totals = computeTotals(subtotal, promoCode, shippingMethod);
-  if (paymentMethod === 'COD' && (!pin.cod || totals.total > COD_LIMIT)) throw new OrderError('Cash on Delivery is not available for this order');
+  return { items, totals };
+}
+
+export async function placeOrder(raw: PlaceOrderInput, origin?: string): Promise<{ order: Order; gateway?: GatewayStart }> {
+  const name = str(raw?.customer?.name, 80);
+  const email = str(raw?.customer?.email, 120);
+  const phone = normalisePhone(str(raw?.customer?.phone, 20));
+  const street = str(raw?.address?.street, 200);
+  const city = str(raw?.address?.city, 80);
+  const state = str(raw?.address?.state, 80);
+  const pincode = str(raw?.address?.pincode, 6);
+  const shippingMethod = raw?.shippingMethod === 'express' ? 'express' : 'standard';
+  const promoCode = str(raw?.promoCode, 30).toUpperCase() || undefined;
+
+  if (name.length < 2) throw new OrderError('Enter your full name');
+  if (phone.length !== 10) throw new OrderError('Enter a 10-digit mobile number');
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new OrderError('Enter a valid email address');
+  if (street.length < 5 || !city || !state) throw new OrderError('Enter your full delivery address');
+  const pin = pincodeInfo(pincode);
+  if (!pin) throw new OrderError('Enter a valid 6-digit pincode');
+
+  const { items, totals } = await priceCart(raw.items, promoCode, shippingMethod, phone);
 
   const now = new Date();
   const order: Order = {
     id: `ord-${now.getTime().toString(36)}${randomBytes(3).toString('hex')}`,
-    orderNumber: `HEVA-${now.getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}`,
+    orderNumber: `RVN-${now.getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}`,
     date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
     createdAt: now.toISOString(),
     customerName: name,
@@ -127,39 +145,64 @@ export async function placeOrder(raw: PlaceOrderInput): Promise<{ order: Order; 
     shippingMethod,
     total: totals.total,
     currency: 'INR',
-    paymentMethod: paymentMethod === 'COD' ? 'COD' : 'UPI',
+    paymentMethod: 'UPI',
     paymentStatus: 'Pending',
-    payment: { provider: paymentMethod === 'COD' ? 'cod' : getGatewayMode(), attempts: [] },
+    payment: { provider: getGatewayMode(), attempts: [] },
     fulfillmentStatus: 'Processing',
     estimatedDelivery: addDays(pin.days + (shippingMethod === 'express' ? 0 : 2)),
-    history: [
-      { at: now.toISOString(), label: 'Order created' },
-      ...(paymentMethod === 'COD' ? [{ at: now.toISOString(), label: 'Cash on Delivery order confirmed', note: 'Payment to be collected at delivery' }] : [])
-    ]
+    history: [{ at: now.toISOString(), label: 'Order created' }]
   };
 
-  if (paymentMethod === 'COD') {
-    await saveOrder(order);
-    return { order };
-  }
-  return startPayment(order);
+  return startPayment(order, origin);
 }
 
 /** Opens a gateway order for the stored total; reused for payment retries. */
-export async function startPayment(order: Order): Promise<{ order: Order; gateway: GatewayStart }> {
+export async function startPayment(order: Order, origin?: string): Promise<{ order: Order; gateway: GatewayStart }> {
   if (order.paymentStatus === 'Paid') throw new OrderError('This order is already paid', 409);
-  const gw = await createGatewayOrder(Math.round(order.total * 100), order.orderNumber, { order_id: order.id });
   const mode = getGatewayMode();
-  const attempt: PaymentAttempt = { id: `att-${Date.now()}`, at: new Date().toISOString(), status: 'Created', gatewayOrderId: gw.id };
+  const amount = Math.round(order.total * 100);
+  let gateway: GatewayStart;
+
+  if (mode === 'cashfree') {
+    const catalog = await listProducts();
+    // Cashfree order ids must be unique per attempt, so suffix our order number.
+    const gatewayOrderId = `${order.orderNumber}_${Date.now().toString(36)}`;
+    const cf = await createCashfreeOrder({
+      orderId: gatewayOrderId,
+      amount: amount / 100,
+      customer: { id: normalisePhone(order.customerPhone) || order.id, name: order.customerName, email: order.customerEmail, phone: order.customerPhone },
+      returnUrl: origin?.startsWith('https://') ? `${origin}/api/payments/cashfree/return?order_id={order_id}` : undefined,
+      notifyUrl: origin?.startsWith('https://') ? `${origin}/api/payments/cashfree/webhook` : undefined,
+      note: `Chikchik order ${order.orderNumber}`,
+      oneClick: order.oneClick
+        ? {
+            cartItems: order.items.map((i) => ({
+              item_id: `${i.productId}-${i.size}`.slice(0, 50),
+              item_name: i.productTitle,
+              item_description: i.size,
+              item_details_url: origin ? `${origin}/product/${catalog.find((p) => p.id === i.productId)?.slug ?? ''}` : undefined,
+              item_image_url: origin && i.productImage?.startsWith('/') ? `${origin}${i.productImage}` : i.productImage,
+              item_original_unit_price: i.price,
+              item_discounted_unit_price: i.price,
+              item_quantity: i.quantity,
+              item_currency: 'INR' as const
+            }))
+          }
+        : undefined
+    });
+    gateway = { mode, keyId: null, gatewayOrderId, amount, paymentSessionId: cf.payment_session_id, cashfreeEnv: getCashfreeEnv() };
+  } else {
+    const gw = await createGatewayOrder(amount, order.orderNumber, { order_id: order.id });
+    gateway = { mode, keyId: mode === 'razorpay' ? process.env.RAZORPAY_KEY_ID ?? null : null, gatewayOrderId: gw.id, amount: gw.amount };
+  }
+
+  const attempt: PaymentAttempt = { id: `att-${Date.now()}`, at: new Date().toISOString(), status: 'Created', gatewayOrderId: gateway.gatewayOrderId };
   const updated: Order = {
     ...order,
-    payment: { ...(order.payment || { provider: mode }), provider: mode, gatewayOrderId: gw.id, attempts: [...(order.payment?.attempts || []), attempt] }
+    payment: { ...(order.payment || { provider: mode }), provider: mode, gatewayOrderId: gateway.gatewayOrderId, attempts: [...(order.payment?.attempts || []), attempt] }
   };
   await saveOrder(updated);
-  return {
-    order: updated,
-    gateway: { mode, keyId: mode === 'razorpay' ? process.env.RAZORPAY_KEY_ID ?? null : null, gatewayOrderId: gw.id, amount: gw.amount }
-  };
+  return { order: updated, gateway };
 }
 
 export async function markPaid(order: Order, gatewayOrderId: string, paymentId: string, method: PaymentMethod = 'UPI') {
@@ -203,4 +246,94 @@ export async function markPaymentFailed(order: Order, gatewayOrderId: string, re
   );
   await saveOrder(updated);
   return updated;
+}
+
+/**
+ * Cashfree One Click Checkout: the shopper only gives a mobile number here; Cashfree handles
+ * OTP login, address and payment. Contact and address are filled in once the order is paid.
+ */
+export async function placeOneClickOrder(raw: OneClickOrderInput, origin?: string): Promise<{ order: Order; gateway: GatewayStart }> {
+  if (!isOneClickEnabled()) throw new OrderError('Express checkout is not available right now', 404);
+  const phone = normalisePhone(str(raw?.phone, 20));
+  if (phone.length !== 10) throw new OrderError('Enter a 10-digit mobile number');
+  const promoCode = str(raw?.promoCode, 30).toUpperCase() || undefined;
+  const { items, totals } = await priceCart(raw.items, promoCode, 'standard', phone);
+
+  const now = new Date();
+  const order: Order = {
+    id: `ord-${now.getTime().toString(36)}${randomBytes(3).toString('hex')}`,
+    orderNumber: `RVN-${now.getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}`,
+    date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    createdAt: now.toISOString(),
+    customerName: 'Express checkout',
+    customerEmail: '',
+    customerPhone: phone,
+    shippingAddress: { id: 'addr-1', fullName: '', phone, street: '', city: '', state: '', pincode: '', country: 'India' },
+    items,
+    subtotal: totals.subtotal,
+    discount: totals.discount,
+    promoCode,
+    shippingFee: totals.shippingFee,
+    shippingMethod: 'standard',
+    total: totals.total,
+    currency: 'INR',
+    paymentMethod: 'UPI',
+    paymentStatus: 'Pending',
+    payment: { provider: 'cashfree', attempts: [] },
+    fulfillmentStatus: 'Processing',
+    estimatedDelivery: addDays(6),
+    history: [{ at: now.toISOString(), label: 'Order created', note: 'Cashfree One Click Checkout' }],
+    oneClick: true
+  };
+  return startPayment(order, origin);
+}
+
+/** Copies the contact and delivery address captured by One Click Checkout onto the order. */
+async function applyOneClickDetails(order: Order, gatewayOrderId: string): Promise<Order> {
+  if (!order.oneClick || order.shippingAddress.street) return order;
+  try {
+    const ext = await fetchCashfreeOrderExtended(gatewayOrderId);
+    const ship = ext.shipping_address || ext.billing_address || {};
+    const customer = ext.customer_details || {};
+    const pincode = str(ship.pin_code, 6);
+    const pin = pincodeInfo(pincode);
+    const name = str(ship.name || customer.customer_name, 80) || order.customerName;
+    const phone = normalisePhone(str(ship.phone || customer.customer_phone, 20)) || order.customerPhone;
+    const updated = withEvent(
+      {
+        ...order,
+        customerName: name,
+        customerEmail: str(ship.email || customer.customer_email, 120),
+        customerPhone: phone,
+        shippingAddress: {
+          ...order.shippingAddress,
+          fullName: name,
+          phone,
+          street: str(ship.address_line_one, 200),
+          apartment: str(ship.address_line_two, 120),
+          city: str(ship.city, 80) || pin?.city || '',
+          state: str(ship.state, 80) || pin?.state || '',
+          pincode
+        },
+        ...(pin && { estimatedDelivery: addDays(pin.days + 2) })
+      },
+      { label: 'Address received from Cashfree', note: [str(ship.city, 80), pincode].filter(Boolean).join(' · ') }
+    );
+    await saveOrder(updated);
+    return updated;
+  } catch (err) {
+    console.error('[orders] cashfree extended lookup failed', order.id, err);
+    return order;
+  }
+}
+
+/** Asks Cashfree what happened to an attempt and records it; the browser's report is never trusted. */
+export async function settleCashfreeAttempt(order: Order, gatewayOrderId: string) {
+  const outcome = await getCashfreeOutcome(gatewayOrderId);
+  if (outcome.status === 'paid') {
+    const paid = await markPaid(order, gatewayOrderId, outcome.paymentId, outcome.method);
+    return { outcome, order: await applyOneClickDetails(paid, gatewayOrderId) };
+  }
+  if (outcome.status === 'failed') return { outcome, order: await markPaymentFailed(order, gatewayOrderId, outcome.reason, outcome.paymentId) };
+  return { outcome, order };
 }

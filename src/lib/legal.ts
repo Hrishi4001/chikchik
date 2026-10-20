@@ -2,15 +2,15 @@ import { EXPRESS_SHIPPING_FEE, STANDARD_SHIPPING_FEE } from './cartRewards';
 
 /** Business details referenced across the policy pages. Fill in the TODO fields before launch. */
 export const LEGAL = {
-  brand: 'Heva Elegance',
-  website: 'www.hevaelegance.com',
-  whatsapp: '+91 8142595131',
-  email: 'support@hevaelegance.com', // TODO: confirm support inbox
+  brand: 'Chikchik',
+  website: 'www.chikchik.in',
+  whatsapp: '+91 9663211070',
+  email: 'hello@chikchik.in',
   address: 'India', // TODO: registered business address
   jurisdiction: 'India', // TODO: city for courts' jurisdiction, e.g. "Hyderabad, Telangana"
   grievanceOfficer: 'Customer Care Team', // TODO: name of Grievance Officer (IT Rules 2021 / DPDP Act 2023)
   lastUpdated: '7 October 2026',
-  freeShippingThreshold: 699,
+  freeShippingThreshold: 499,
   standardShippingFee: STANDARD_SHIPPING_FEE,
   expressShippingFee: EXPRESS_SHIPPING_FEE,
   returnWindowDays: 7,
@@ -27,18 +27,5 @@ export const LEGAL_PAGES = [
 export const INFO_PAGES = [
   { href: '/pages/about-us', label: 'About Us' },
   { href: '/pages/contact-us', label: 'Contact Us' },
-  { href: '/pages/size-chart', label: 'Size Guide' },
   { href: '/pages/faq', label: 'FAQ' },
-] as const;
-
-/** Garment measurements in inches; mirrors the size guide on product pages. */
-export const SIZE_CHART = [
-  { size: 'XS', bust: 36, waist: 38, hip: 42, length: 40 },
-  { size: 'S', bust: 38, waist: 40, hip: 44, length: 40 },
-  { size: 'M', bust: 40, waist: 42, hip: 46, length: 40 },
-  { size: 'L', bust: 42, waist: 44, hip: 48, length: 40 },
-  { size: 'XL', bust: 44, waist: 46, hip: 50, length: 40 },
-  { size: '2XL', bust: 46, waist: 48, hip: 52, length: 40 },
-  { size: '3XL', bust: 48, waist: 50, hip: 54, length: 40 },
-  { size: '4XL', bust: 50, waist: 52, hip: 56, length: 40 },
 ] as const;

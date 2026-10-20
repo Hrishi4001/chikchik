@@ -15,9 +15,9 @@ export default function WishlistPage() {
       {wishlistProducts.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '4rem 1rem', backgroundColor: '#FFFFFF', borderRadius: '8px' }}>
           <Heart size={36} color="var(--text-muted)" style={{ margin: '0 auto 1rem' }} />
-          <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Your Wishlist is Empty</h3>
+          <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Your wishlist is a blank slam book</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-            Save your favorite sarees and kurti suits while browsing.
+            Add your favourites here, like writing names in a friendship band.
           </p>
           <Link href="/shop" className="btn-primary">
             Explore Collections

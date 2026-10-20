@@ -5,8 +5,8 @@ import ContactForm from '@/components/legal/ContactForm';
 import { LEGAL } from '@/lib/legal';
 
 export const metadata: Metadata = {
-  title: 'Contact Us | Heva Elegance',
-  description: 'Get in touch with Heva Elegance on WhatsApp or email for orders, sizing, returns and custom-fit requests.',
+  title: 'Contact Us | Chikchik',
+  description: 'Contact Chikchik on WhatsApp or email for help choosing a designer lighter, gifting, orders, delivery and returns.',
   alternates: { canonical: '/pages/contact-us' },
 };
 
@@ -20,7 +20,7 @@ export default function ContactUsPage() {
   return (
     <PageShell title="Contact Us" currentHref="/pages/contact-us">
       <p style={{ marginBottom: '2rem' }}>
-        Have a question about an order, sizing or a custom fit? We&rsquo;re happy to help. Reach us directly or send a message
+        Have a question about an order, a finish, or which lighter makes the right gift? We&rsquo;re happy to help. Reach us directly or send a message
         below — we usually reply within one business day (Monday–Saturday, 10 AM–7 PM IST).
       </p>
 

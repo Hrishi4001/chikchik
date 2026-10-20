@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
   return (
     <form onSubmit={submit} className={`${styles.card} ${styles.loginCard}`}>
       <div className={styles.brand} style={{ marginBottom: '1rem' }}>
-        <strong>Heva Elegance</strong>
+        <strong>Chikchik</strong>
         <span>Admin</span>
       </div>
       <h1 className={styles.loginTitle}>

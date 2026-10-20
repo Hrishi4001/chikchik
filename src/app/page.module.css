@@ -2,12 +2,12 @@
   --background: #fafafa;
   --foreground: #fff;
 
-  --text-primary: #580F00;
-  --text-secondary: #580F00;
+  --text-primary: #111111;
+  --text-secondary: #111111;
 
   --button-primary-hover: #383838;
-  --button-secondary-hover: #f7f5ef;
-  --button-secondary-border: #580F00;
+  --button-secondary-hover: #FAF9F5;
+  --button-secondary-border: #111111;
 
   display: flex;
   flex: 1;
@@ -129,15 +129,15 @@ a.secondary {
   }
 
   .page {
-    --background: #580F00;
-    --foreground: #580F00;
+    --background: #FFC800;
+    --foreground: #111111;
 
     --text-primary: #ededed;
     --text-secondary: #999;
 
     --button-primary-hover: #ccc;
-    --button-secondary-hover: #580F00;
-    --button-secondary-border: #580F00;
+    --button-secondary-hover: #111111;
+    --button-secondary-border: #111111;
   }
 }
 

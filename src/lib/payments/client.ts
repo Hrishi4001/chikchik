@@ -1,12 +1,14 @@
 'use client';
 
-import type { Order, PaymentMethod, PlaceOrderInput } from '@/lib/types';
+import type { OneClickOrderInput, Order, PaymentMethod, PlaceOrderInput } from '@/lib/types';
 
 export interface GatewayOrderResponse {
-  mode: 'razorpay' | 'mock';
+  mode: 'cashfree' | 'razorpay' | 'mock';
   keyId: string | null;
   gatewayOrderId: string;
   amount: number; // paise
+  paymentSessionId?: string;
+  cashfreeEnv?: 'sandbox' | 'production';
 }
 
 export interface GatewaySuccess {
@@ -37,6 +39,11 @@ export function placeServerOrder(input: PlaceOrderInput) {
   return post<{ order: Order; gateway?: GatewayOrderResponse }>('/api/orders', input);
 }
 
+/** Cashfree One Click Checkout: Cashfree collects login, address and payment. */
+export function placeOneClickOrder(input: OneClickOrderInput) {
+  return post<{ order: Order; gateway: GatewayOrderResponse }>('/api/orders/one-click', input);
+}
+
 export function retryOrderPayment(orderId: string) {
   return post<{ order: Order; gateway: GatewayOrderResponse }>(`/api/orders/${orderId}/pay`, {});
 }
@@ -44,7 +51,7 @@ export function retryOrderPayment(orderId: string) {
 export async function verifyGatewayPayment(input: {
   orderId: string;
   gatewayOrderId: string;
-  paymentId: string;
+  paymentId?: string;
   signature?: string;
   mockOutcome?: 'success';
   mockMethod?: PaymentMethod;
@@ -108,10 +115,10 @@ export async function openRazorpayCheckout(opts: {
       order_id: opts.gatewayOrderId,
       amount: opts.amount,
       currency: 'INR',
-      name: 'Heva Elegance',
+      name: 'Chikchik',
       description: opts.description,
       prefill: opts.prefill,
-      theme: { color: '#580F00' },
+      theme: { color: '#FFC800' },
       handler: (resp: { razorpay_payment_id: string; razorpay_signature: string }) =>
         resolve({ paymentId: resp.razorpay_payment_id, signature: resp.razorpay_signature }),
       modal: { ondismiss: () => reject(new PaymentError('Payment window closed before completion', true)) }
@@ -121,4 +128,55 @@ export async function openRazorpayCheckout(opts: {
     );
     rzp.open();
   });
+}
+
+// ---- Cashfree Checkout (live mode) ----
+
+interface CashfreeCheckoutResult {
+  error?: { message?: string; code?: string };
+  redirect?: boolean;
+  paymentDetails?: { paymentMessage?: string };
+}
+
+declare global {
+  interface Window {
+    Cashfree?: (opts: { mode: 'sandbox' | 'production' }) => {
+      checkout: (opts: { paymentSessionId: string; redirectTarget: '_modal' | '_self' }) => Promise<CashfreeCheckoutResult>;
+    };
+  }
+}
+
+let cashfreeScript: Promise<void> | null = null;
+
+function loadCashfreeScript(): Promise<void> {
+  if (window.Cashfree) return Promise.resolve();
+  if (!cashfreeScript) {
+    cashfreeScript = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => {
+        cashfreeScript = null;
+        reject(new PaymentError('Could not load Cashfree. Check your connection and retry.'));
+      };
+      document.body.appendChild(script);
+    });
+  }
+  return cashfreeScript;
+}
+
+/**
+ * Opens Cashfree's checkout modal. Resolves once the shopper finishes; the server then
+ * looks up the real payment status, so no payment id or signature comes from here.
+ */
+export async function openCashfreeCheckout(opts: { paymentSessionId: string; env: 'sandbox' | 'production' }): Promise<GatewaySuccess> {
+  await loadCashfreeScript();
+  const result = await window.Cashfree!({ mode: opts.env }).checkout({ paymentSessionId: opts.paymentSessionId, redirectTarget: '_modal' });
+  if (result.error) {
+    const message = result.error.message || 'Payment failed';
+    // Closing the modal surfaces as an error whose message mentions the popup/window being closed.
+    throw new PaymentError(message, /clos|cancel|dropped/i.test(message));
+  }
+  return { paymentId: '' };
 }

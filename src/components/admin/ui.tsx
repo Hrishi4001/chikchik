@@ -154,7 +154,7 @@ export function ColumnChart<T>({
           const v = value(d);
           return (
             <g key={i}>
-              <path d={barPath(x, y(v), barW)} fill="#580F00" opacity={hover === null || hover === i ? 1 : 0.45} />
+              <path d={barPath(x, y(v), barW)} fill="#FFC800" opacity={hover === null || hover === i ? 1 : 0.45} />
               {i % labelEvery === 0 && (
                 <text x={x + barW / 2} y={height - 6} textAnchor="middle" fontSize={11} fill="#8e8880">
                   {label(d)}

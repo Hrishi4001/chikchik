@@ -1,0 +1,152 @@
+/* Footer modelled on parttimesaints.com: dark band, letter-spaced headings, compact link lists, underline email field */
+.footer {
+  background-color: #121214;
+  color: #FFFFFF;
+  padding: 3rem 0;
+  font-family: var(--font-body-family);
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.blocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.block {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.heading {
+  font-family: var(--font-body-family);
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin: 0 0 8px;
+}
+
+.menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.menu a,
+.menu button {
+  font-family: var(--font-body-family);
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #FFFFFF;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.menu a:hover,
+.menu button:hover {
+  text-decoration: underline;
+}
+
+.subscribe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 15px;
+}
+
+.form {
+  width: 100%;
+  min-width: 150px;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid #FFFFFF;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  margin-left: 0.5rem;
+  padding: 0.6rem 0;
+  border: 0;
+  background: transparent;
+  color: #FFFFFF;
+  font-family: var(--font-body-family);
+  font-size: 14px;
+  outline: none;
+}
+
+.input::placeholder {
+  color: #FFFFFF;
+}
+
+.submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  background: none;
+  border: 0;
+  color: #FFFFFF;
+  cursor: pointer;
+  letter-spacing: 0;
+}
+
+.form:focus-within {
+  outline: 1px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 4px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (min-width: 750px) {
+  .wrapper {
+    flex-direction: row;
+  }
+
+  .blocks {
+    flex: 0 0 75%;
+    justify-content: space-between;
+  }
+
+  .block {
+    flex: 1 1 40%;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .heading {
+    font-size: 16px;
+  }
+
+  .subscribe {
+    flex: 1;
+    align-items: flex-end;
+  }
+}

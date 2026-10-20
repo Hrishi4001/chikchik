@@ -27,12 +27,13 @@ export default function SearchModal() {
         );
       });
 
-  // Suggest only fabrics that are actually in the catalogue, most-stocked first
+  // Suggest only materials that are actually in the catalogue, most-stocked first
   const fabricCounts = products.reduce<Record<string, number>>((acc, p) => {
-    if (p.fabric) acc[p.fabric] = (acc[p.fabric] || 0) + 1;
+    const key = p.fabric.split(',')[0].replace(/\s*\(.*\)/, '').trim();
+    if (key) acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
-  const popularSearches = ['Saree', 'Kurti', ...Object.keys(fabricCounts).sort((a, b) => fabricCounts[b] - fabricCounts[a]).slice(0, 6)];
+  const popularSearches = ['Flip-top', 'Gift', ...Object.keys(fabricCounts).sort((a, b) => fabricCounts[b] - fabricCounts[a]).slice(0, 6)];
 
   // On a product page, recommend pieces like the one being viewed; elsewhere, bestsellers and new arrivals
   const currentSlug = pathname.startsWith('/product/') ? decodeURIComponent(pathname.split('/')[2] || '') : '';
@@ -80,7 +81,7 @@ export default function SearchModal() {
       </div>
 
       <div style={{ flex: 1 }}>
-        <span style={{ fontSize: '0.72rem', color: 'var(--accent-terracotta)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <span style={{ fontSize: '0.72rem', color: '#111111', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           {product.categoryLabel}
         </span>
         <h4
@@ -95,7 +96,7 @@ export default function SearchModal() {
           {product.title}
         </h4>
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          {product.fabric} • {product.origin}
+          {product.craft} • {product.sizes.join(' / ')}
         </p>
       </div>
 
@@ -155,7 +156,7 @@ export default function SearchModal() {
           <Search size={22} color="var(--text-secondary)" />
           <input
             type="text"
-            placeholder="Search sarees, kurtis, fabrics…"
+            placeholder="Search lighters, finishes, materials…"
             aria-label="Search products"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -239,7 +240,7 @@ export default function SearchModal() {
                     No creations found for &quot;{searchQuery}&quot;
                   </p>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    Try a fabric or colour, like &quot;{popularSearches[2] || 'silk'}&quot; or &quot;blue&quot;
+                    Try a design, like &quot;{popularSearches[2] || 'tiger'}&quot; or &quot;jet&quot;
                   </p>
                   <div style={{ textAlign: 'left' }}>{recommendations}</div>
                 </div>

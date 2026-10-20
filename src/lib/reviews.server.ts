@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
-import { INITIAL_PRODUCTS } from './data';
 import { kvList, kvSet } from './kv.server';
 import { listOrders } from './orders.server';
+import { getProduct } from './products.server';
 import type { StoreReview } from './reviews';
 
 const STORE = 'reviews';
@@ -26,7 +26,7 @@ export async function addReview(input: Partial<StoreReview>) {
   const rating = Math.round(Number(input.rating));
   const title = String(input.title ?? '').trim().slice(0, 100);
   const comment = String(input.comment ?? '').trim().slice(0, 600);
-  const product = input.productId ? INITIAL_PRODUCTS.find((p) => p.id === input.productId) : undefined;
+  const product = input.productId ? ((await getProduct(input.productId)) ?? undefined) : undefined;
 
   if (author.length < 2) throw new ReviewError('Please enter your name');
   if (!EMAIL_RE.test(email)) throw new ReviewError('Enter a valid email address');

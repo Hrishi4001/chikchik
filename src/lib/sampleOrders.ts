@@ -52,7 +52,7 @@ export function generateSampleOrders(products: Product[], days = 90): Order[] {
 
       const age = d;
       let fulfillmentStatus: FulfillmentStatus =
-        age > 10 ? 'Delivered' : age > 6 ? 'Dispatched' : age > 3 ? 'Quality Check' : age > 1 ? 'Tailoring' : 'Processing';
+        age > 10 ? 'Delivered' : age > 6 ? 'Dispatched' : age > 3 ? 'Quality Check' : age > 1 ? 'Packing' : 'Processing';
       const failed = method !== 'COD' && rand() < 0.06;
       const refunded = !failed && fulfillmentStatus === 'Delivered' && rand() < 0.04;
       if (failed || refunded) fulfillmentStatus = 'Cancelled';
@@ -64,7 +64,7 @@ export function generateSampleOrders(products: Product[], days = 90): Order[] {
 
       orders.push({
         id: `ord-sample-${created.getTime()}-${n}`,
-        orderNumber: `HEVA-${created.getFullYear()}-${String(1000 + orders.length).padStart(4, '0')}`,
+        orderNumber: `RVN-${created.getFullYear()}-${String(1000 + orders.length).padStart(4, '0')}`,
         date: created.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         createdAt: iso,
         customerName: name,
@@ -83,7 +83,7 @@ export function generateSampleOrders(products: Product[], days = 90): Order[] {
         items,
         subtotal,
         discount,
-        promoCode: discount ? 'ELEGANCE' : undefined,
+        promoCode: discount ? 'CHIKCHIK10' : undefined,
         shippingFee,
         shippingMethod: 'standard',
         total,

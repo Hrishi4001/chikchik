@@ -15,7 +15,7 @@ async function adminLogin(page: Page) {
 
 // Runs against the mock gateway (no Razorpay keys configured).
 test('checkout: failed payment can be retried, order appears in admin', async ({ page }) => {
-  await page.goto('/product/cotton-blend-rayon-kurti-1');
+  await page.goto('/product/neem-tulsi-glycerin-soap');
   await page.getByRole('button', { name: 'Add to cart' }).first().click();
   await page.goto('/checkout');
 
@@ -42,7 +42,7 @@ test('checkout: failed payment can be retried, order appears in admin', async ({
 
   await adminLogin(page);
   await page.goto('/admin/orders');
-  await page.getByRole('link', { name: /HEVA-/ }).first().click();
+  await page.getByRole('link', { name: /RVN-/ }).first().click();
   await expect(page.getByText('Test Patron').first()).toBeVisible();
   await expect(page.getByText('Payment captured')).toBeVisible();
   await expect(page.getByText('Payment declined by bank (simulated)').first()).toBeVisible();

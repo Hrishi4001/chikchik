@@ -34,7 +34,7 @@ export default function MockPaymentSheet({ amountLabel, orderNumber, onResult }:
       style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(20,16,10,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
     >
       <div style={{ width: '100%', maxWidth: '380px', backgroundColor: '#FFFFFF', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
-        <div style={{ backgroundColor: '#580F00', color: '#FFFFFF', padding: '1.1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ backgroundColor: 'var(--color-accent)', color: '#111111', padding: '1.1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <p style={{ fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>Test mode · Razorpay not configured</p>
             <p style={{ fontSize: '1.4rem', fontWeight: 700, marginTop: '0.2rem' }}>{amountLabel}</p>
@@ -59,8 +59,8 @@ export default function MockPaymentSheet({ amountLabel, orderNumber, onResult }:
                   borderRadius: '6px',
                   fontSize: '0.85rem',
                   fontWeight: 600,
-                  border: method === m.id ? '1.5px solid #580F00' : '1px solid #DDD8CE',
-                  backgroundColor: method === m.id ? '#F7F5EF' : '#FFFFFF'
+                  border: method === m.id ? '1.5px solid #111111' : '1px solid #DDD8CE',
+                  backgroundColor: method === m.id ? '#FAF9F5' : '#FFFFFF'
                 }}
               >
                 {m.label}

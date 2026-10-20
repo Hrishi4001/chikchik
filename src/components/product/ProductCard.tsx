@@ -7,6 +7,7 @@ import { Plus, Star } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { useStore } from '@/context/StoreContext';
 import { averageRating, useReviews } from '@/lib/reviews';
+import { useDominantColor } from '@/lib/dominantColor';
 
 interface ProductCardProps {
   product: Product;
@@ -23,6 +24,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const rating = averageRating(cardReviews);
 
   const secondaryImage = product.images[1] || product.images[0];
+  const imageBg = useDominantColor(product.images[0]);
   const isSoldOut = !product.inStock || product.stockCount <= 0;
   const discountPct =
     product.compareAtPrice && product.compareAtPrice > product.price
@@ -42,7 +44,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* 3:4 Aspect Ratio Image Box */}
+      {/* 3:4 portrait image box with a hairline black frame, tinted with a light wash of the photo's main colour */}
       <div
         className="product-card-media"
         style={{
@@ -50,8 +52,10 @@ export default function ProductCard({ product }: ProductCardProps) {
           width: '100%',
           aspectRatio: '3 / 4',
           overflow: 'hidden',
-          borderRadius: '10px',
-          backgroundColor: '#F8F6F2'
+          borderRadius: 0,
+          border: '1px solid #000000',
+          backgroundColor: imageBg ? imageBg.replace('rgb(', 'rgba(').replace(')', ', 0.15)') : 'transparent',
+          transition: 'background-color 0.3s ease'
         }}
       >
         <Link 
@@ -62,7 +66,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Primary image */}
           <img
             src={product.images[0]}
-            alt={product.title}
+            alt={`${product.title}, designer lighter`}
             className="primary-img"
             style={{
               width: '100%',
@@ -87,7 +91,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Secondary hover image */}
           <img
             src={secondaryImage}
-            alt={`${product.title} view 2`}
+            alt={`${product.title}, designer lighter, alternate view`}
             className="hover-img"
             style={{
               width: '100%',
@@ -103,7 +107,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           />
         </Link>
 
-        {/* Add to Cart: square icon button (adds directly when only one size, otherwise opens quick view to pick a size) */}
+        {/* Add to Cart: round icon button (adds directly when only one size, otherwise opens quick view to pick a size) */}
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -121,12 +125,11 @@ export default function ProductCard({ product }: ProductCardProps) {
             position: 'absolute',
             bottom: '0.75rem',
             right: '0.75rem',
-            width: '40px',
-            height: '40px',
-            borderRadius: '8px',
-            backgroundColor: '#141414',
-            border: '1px solid #141414',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid rgba(17, 17, 17, 0.1)',
             display: isSoldOut ? 'none' : 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -135,7 +138,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             transition: 'all 0.2s ease'
           }}
         >
-          <Plus size={20} color="#FFFFFF" strokeWidth={2} />
+          <Plus size={16} color="#111111" strokeWidth={2} />
         </button>
       </div>
 
@@ -147,7 +150,9 @@ export default function ProductCard({ product }: ProductCardProps) {
           paddingBottom: '0.5rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.4rem'
+          alignItems: 'flex-start',
+          textAlign: 'left',
+          gap: '0.45rem'
         }}
       >
         <Link 
@@ -157,11 +162,12 @@ export default function ProductCard({ product }: ProductCardProps) {
           <h3
             style={{
               fontFamily: 'var(--font-body-family)',
-              fontSize: '0.92rem',
+              fontSize: '15px',
               fontWeight: 600,
-              letterSpacing: '0.01em',
-              color: '#580F00',
-              lineHeight: 1.35,
+              letterSpacing: 0,
+              textTransform: 'uppercase',
+              color: '#111111',
+              lineHeight: 1.5,
               margin: 0
             }}
           >
@@ -170,9 +176,9 @@ export default function ProductCard({ product }: ProductCardProps) {
         </Link>
 
         {cardReviews.length > 0 && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', color: '#5C5852' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', color: '#000000' }}>
             <Star size={13} fill="#C08A2E" color="#C08A2E" />
-            {rating.toFixed(1)} <span style={{ color: '#736960' }}>({cardReviews.length})</span>
+            {rating.toFixed(1)} <span style={{ color: '#000000' }}>({cardReviews.length})</span>
           </span>
         )}
 
@@ -181,11 +187,11 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span
             style={{
               fontFamily: 'var(--font-body-family)',
-              fontSize: '0.9rem',
+              fontSize: '16px',
               fontWeight: 400,
-              letterSpacing: '0.04em',
+              letterSpacing: '1px',
               textTransform: 'uppercase',
-              color: '#580F00'
+              color: '#111111'
             }}
           >
             {formatPrice(product.price)}
@@ -195,7 +201,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               style={{
                 fontFamily: 'var(--font-body-family)',
                 fontSize: '0.82rem',
-                color: '#8E8880',
+                color: '#000000',
                 textDecoration: 'line-through'
               }}
             >
@@ -204,17 +210,6 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        <p
-          style={{
-            fontFamily: 'var(--font-body-family)',
-            fontSize: '0.82rem',
-            color: '#736960',
-            margin: '0.15rem 0 0'
-          }}
-        >
-          {product.fabric}
-          {product.sizes.length > 1 ? ` · ${product.sizes[0]}–${product.sizes[product.sizes.length - 1]}` : ''}
-        </p>
       </div>
     </div>
   );

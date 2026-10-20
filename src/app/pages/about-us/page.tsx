@@ -4,16 +4,16 @@ import PageShell from '@/components/legal/PageShell';
 import { ContactNote } from '@/components/legal/PolicyPage';
 
 export const metadata: Metadata = {
-  title: 'About Us | Heva Elegance',
-  description: 'Heva Elegance is a clothing brand for women who express confidence with comfort — modern silhouettes rooted in timeless Indian craft.',
+  title: 'About Chikchik | Designer Lighters with a 90s Soul',
+  description: 'Chikchik makes designer lighters with a 90s soul: vintage Indian matchbox art printed on refillable jet-flame and flip-top lighters. Made for collectors and gifting.',
   alternates: { canonical: '/pages/about-us' },
 };
 
 const VALUES = [
-  { title: 'Comfort First', body: 'Breathable fabrics and easy, considered fits you can wear from morning errands to evening celebrations.' },
-  { title: 'Timeless Craft', body: 'Handpicked prints, weaves and finishing details that honour Indian textile traditions without feeling dated.' },
-  { title: 'Made to Fit You', body: 'Kurti suits from S to 3XL and free-size sarees, with personal fit help on WhatsApp.' },
-  { title: 'Honest Quality', body: 'Every piece is quality-checked and carefully packed before it leaves us, so it arrives exactly as you expect.' },
+  { title: 'Built Like Back Then', body: 'Solid metal bodies, smooth hinges and simple mechanics, made to be used every day and kept for years.' },
+  { title: 'Designed with Nostalgia', body: 'Every design starts with a 90s memory: a cassette label, an arcade screen, a comic panel or a pager.' },
+  { title: 'Limited Runs', body: 'Designs are made in small runs, like a mixtape recorded one song at a time, so your lighter stays special.' },
+  { title: 'Made for Gifting', body: 'Boxed and ready to hand over, for the friend who still has their old Walkman.' },
 ];
 
 export default function AboutUsPage() {
@@ -21,11 +21,11 @@ export default function AboutUsPage() {
     <PageShell title="About Us" currentHref="/pages/about-us">
       <div className="policy-body">
         <p style={{ fontSize: '1.1rem', fontFamily: 'var(--font-heading-family)' }}>
-          Heva Elegance is a clothing brand crafted for women who believe in expressing confidence with comfort.
+          Remember the 90s? Cassettes rewound with a pencil, arcade tokens in your pocket and the satisfying click of a flip-top lighter.
         </p>
         <p>
-          We blend modern styles with timeless elegance, creating outfits that suit every mood — from casual days to special moments.
-          At Heva Elegance, fashion isn&rsquo;t just about wearing clothes; it&rsquo;s about feeling empowered in your own skin.
+          Chikchik is our love letter to that time. We design lighters the way things used to be made: solid, simple and full
+          of character. Bold colours, retro prints and metal you can feel, each one a small piece of the decade we grew up in.
         </p>
       </div>
 
@@ -42,12 +42,12 @@ export default function AboutUsPage() {
       </section>
 
       <section className="policy-body" style={{ marginTop: '2.5rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-heading-family)', fontSize: '1.2rem', fontWeight: 500, marginBottom: '0.75rem' }}>Our Collections</h2>
+        <h2 style={{ fontFamily: 'var(--font-heading-family)', fontSize: '1.2rem', fontWeight: 500, marginBottom: '0.75rem' }}>Our Range</h2>
         <p>
-          From everyday kurtis and co-ord sets to sarees and festive wear, our collections are designed to move with you.
-          New styles drop regularly — subscribe to our newsletter to hear about them first.
+          From windproof jet-flame lighters to classic flip-tops, each printed with a vintage matchbox label, our range covers
+          everyday carry, collectors and gifting. Subscribe to our newsletter for new launches and a few throwbacks along the way.
         </p>
-        <Link href="/shop" className="btn-primary" style={{ marginTop: '0.5rem', textDecoration: 'none' }}>Shop the Collection</Link>
+        <Link href="/shop" className="btn-primary" style={{ marginTop: '0.5rem', textDecoration: 'none' }}>Press Play on the Range</Link>
       </section>
 
       <ContactNote />

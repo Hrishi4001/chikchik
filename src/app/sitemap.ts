@@ -1,44 +1,42 @@
 import { MetadataRoute } from 'next';
-import { INITIAL_PRODUCTS } from '@/lib/data';
+import { listProducts } from '@/lib/products.server';
+import { COLLECTIONS } from '@/lib/collections';
 import { INFO_PAGES, LEGAL_PAGES } from '@/lib/legal';
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://www.hevaelegance.com';
+const baseUrl = 'https://www.chikchik.in';
+const absolute = (src: string) => (src.startsWith('http') ? src : `${baseUrl}${src}`);
 
-  const productUrls = INITIAL_PRODUCTS.map((prod) => ({
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const now = new Date();
+  const products = await listProducts();
+
+  // Product pages carry their photos so lighters can surface in image search
+  const productUrls = products.map((prod) => ({
     url: `${baseUrl}/product/${prod.slug}`,
-    lastModified: new Date(),
+    lastModified: now,
     changeFrequency: 'weekly' as const,
     priority: 0.9,
+    images: prod.images.map(absolute),
   }));
 
-  const categoryUrls = ['sarees', 'kurti-suits'].map((cat) => ({
-    url: `${baseUrl}/shop?category=${cat}`,
-    lastModified: new Date(),
-    changeFrequency: 'daily' as const,
+  // Matches each collection's canonical URL on the shop page
+  const collectionUrls = COLLECTIONS.map((c) => ({
+    url: `${baseUrl}/shop?category=${c.id}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
     priority: 0.8,
   }));
 
   return [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/shop`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.9,
-    },
-    ...categoryUrls,
+    { url: baseUrl, lastModified: now, changeFrequency: 'daily', priority: 1.0 },
+    { url: `${baseUrl}/shop`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
+    ...collectionUrls,
     ...productUrls,
     ...[...INFO_PAGES, ...LEGAL_PAGES].map((p) => ({
       url: `${baseUrl}${p.href}`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: 'yearly' as const,
-      priority: 0.3,
+      priority: p.href === '/pages/faq' || p.href === '/pages/about-us' ? 0.5 : 0.3,
     })),
   ];
 }

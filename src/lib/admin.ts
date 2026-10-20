@@ -1,6 +1,6 @@
 import type { Order, FulfillmentStatus, PaymentStatus } from '@/lib/types';
 
-export const FULFILLMENT_FLOW: FulfillmentStatus[] = ['Processing', 'Tailoring', 'Quality Check', 'Dispatched', 'Delivered'];
+export const FULFILLMENT_FLOW: FulfillmentStatus[] = ['Processing', 'Packing', 'Quality Check', 'Dispatched', 'Delivered'];
 export const LOW_STOCK_THRESHOLD = 3;
 
 /** Admin figures are shown in INR. */

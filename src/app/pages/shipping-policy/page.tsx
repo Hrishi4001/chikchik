@@ -3,8 +3,8 @@ import PolicyPage from '@/components/legal/PolicyPage';
 import { LEGAL } from '@/lib/legal';
 
 export const metadata: Metadata = {
-  title: 'Shipping Policy | Heva Elegance',
-  description: 'Delivery timelines, shipping charges, Cash on Delivery and order tracking for Heva Elegance orders across India.',
+  title: 'Shipping Policy | Chikchik',
+  description: 'Delivery timelines, shipping charges and tracking for Chikchik designer lighter orders across India.',
   alternates: { canonical: '/pages/shipping-policy' },
 };
 
@@ -15,7 +15,7 @@ export default function ShippingPolicyPage() {
     <PolicyPage
       title="Shipping Policy"
       currentHref="/pages/shipping-policy"
-      intro={<p>Every Heva Elegance piece is quality-checked, carefully packed and shipped fully insured. This policy explains how and when your order reaches you.</p>}
+      intro={<p>Every Chikchik order is quality-checked, carefully packed and shipped fully insured. This policy explains how and when your order reaches you.</p>}
       sections={[
         {
           heading: 'Shipping Charges',
@@ -34,8 +34,7 @@ export default function ShippingPolicyPage() {
               <ul>
                 <li>Ready-to-ship orders are processed within 1–2 business days (within 24 hours for Priority Delivery).</li>
                 <li>Once dispatched, delivery typically takes 3–7 business days depending on your PIN code.</li>
-                <li>Made-to-measure or custom-fit orders need an additional 5 business days for tailoring.</li>
-                <li>Handcrafted and made-to-order pieces may take up to 12–15 business days in total; any such timeline is mentioned on the product page.</li>
+                <li>Products are handmade in small batches; if an item needs a fresh batch, we will let you know the expected dispatch date.</li>
               </ul>
               <p>The estimated delivery date shown at checkout is indicative. Business days exclude Sundays and public holidays. Delays caused by courier partners, weather, strikes or other events outside our control may occur, and we will keep you informed.</p>
             </>
@@ -43,11 +42,7 @@ export default function ShippingPolicyPage() {
         },
         {
           heading: 'Serviceable Locations',
-          body: <p>We currently ship across India through trusted courier partners. Enter your PIN code on the product or checkout page to check serviceability and Cash on Delivery availability. For international orders, please contact us on WhatsApp at {LEGAL.whatsapp} before placing your order.</p>,
-        },
-        {
-          heading: 'Cash on Delivery',
-          body: <p>Cash on Delivery (COD) is available on select PIN codes and order values, as shown at checkout. We may contact you to confirm a COD order before dispatch, and reserve the right to cancel unconfirmed COD orders.</p>,
+          body: <p>We currently ship across India through trusted courier partners. Enter your PIN code on the product or checkout page to check serviceability. For international orders, please contact us on WhatsApp at {LEGAL.whatsapp} before placing your order.</p>,
         },
         {
           heading: 'Order Tracking',
@@ -65,7 +60,7 @@ export default function ShippingPolicyPage() {
         },
         {
           heading: 'Failed Deliveries',
-          body: <p>If a delivery fails due to an incorrect address, unavailability or refusal of a prepaid order, the parcel will be returned to us. Re-shipping charges may apply. For refused or undelivered COD orders, we may restrict COD for future orders.</p>,
+          body: <p>If a delivery fails due to an incorrect address, unavailability or refusal of a prepaid order, the parcel will be returned to us. Re-shipping charges may apply.</p>,
         },
       ]}
     />

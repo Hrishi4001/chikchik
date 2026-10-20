@@ -4,17 +4,17 @@ import CookiePreferencesButton from '@/components/privacy/CookiePreferencesButto
 import { LEGAL } from '@/lib/legal';
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy | Heva Elegance',
-  description: 'Which cookies Heva Elegance uses, why, and how to change your cookie preferences.',
+  title: 'Cookie Policy | Chikchik',
+  description: 'Which cookies Chikchik uses, why, and how to change your cookie preferences.',
   alternates: { canonical: '/pages/cookie-policy' },
 };
 
 const COOKIES = [
-  { name: 'he_consent', type: 'Strictly necessary', purpose: 'Remembers your cookie choices', duration: '6 months' },
+  { name: 'rv_consent', type: 'Strictly necessary', purpose: 'Remembers your cookie choices', duration: '6 months' },
   { name: 'admin_session', type: 'Strictly necessary', purpose: 'Keeps store staff signed in to the admin console (staff only)', duration: 'Session / up to 7 days' },
-  { name: 'svayam_cart, svayam_wishlist (local storage)', type: 'Strictly necessary', purpose: 'Remembers your bag and wishlist on this device', duration: 'Until cleared' },
+  { name: 'chikchik_cart, chikchik_wishlist (local storage)', type: 'Strictly necessary', purpose: 'Remembers your bag and wishlist on this device', duration: 'Until cleared' },
   { name: 'he_phone_prompt (local storage)', type: 'Strictly necessary', purpose: 'Remembers that you closed the WhatsApp sign-up prompt', duration: 'Until cleared' },
-  { name: 'he_vid', type: 'Analytics', purpose: 'A random ID used to tell new and returning visitors apart', duration: '12 months' },
+  { name: 'rv_vid', type: 'Analytics', purpose: 'A random ID used to tell new and returning visitors apart', duration: '12 months' },
   { name: 'Razorpay cookies', type: 'Strictly necessary (third party)', purpose: 'Fraud prevention and secure payment at checkout', duration: 'Set by Razorpay' },
 ];
 

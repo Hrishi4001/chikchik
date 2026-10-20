@@ -41,7 +41,7 @@ export default function AdminProductsPage() {
 
   const exportCsv = () =>
     downloadCsv(`products-${new Date().toISOString().slice(0, 10)}.csv`, [
-      ['ID', 'Title', 'Category', 'Price', 'Compare at', 'Stock', 'Units sold', 'Fabric', 'Origin'],
+      ['ID', 'Title', 'Category', 'Price', 'Compare at', 'Stock', 'Units sold', 'Material & finish', 'Origin'],
       ...filtered.map((p) => [p.id, p.title, p.categoryLabel, p.price, p.compareAtPrice || '', p.stockCount, unitsSold.get(p.id) || 0, p.fabric, p.origin])
     ]);
 
@@ -65,7 +65,7 @@ export default function AdminProductsPage() {
       <div className={styles.toolbar}>
         <label className={styles.search}>
           <Search size={15} color="#8e8880" />
-          <input placeholder="Search title, fabric, origin, colour" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search products" />
+          <input placeholder="Search title, material, origin, variant" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search products" />
         </label>
         <select className={styles.select} value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category">
           <option value="all">All categories</option>

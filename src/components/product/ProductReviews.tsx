@@ -182,9 +182,9 @@ export default function ProductReviews({ product, reviews, onSubmit }: Props) {
         {reviews.map((rev) => (
           <div key={rev.id} style={{ padding: '0.85rem 0', borderTop: '1px solid #F0F0F0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#777777', marginBottom: '0.25rem' }}>
-              <span style={{ fontWeight: 600, color: '#580F00' }}>
+              <span style={{ fontWeight: 600, color: '#111111' }}>
                 {rev.author}
-                {rev.verifiedBuyer && <span style={{ marginLeft: '0.4rem', fontWeight: 500, color: '#1B4435' }}>✓ Verified buyer</span>}
+                {rev.verifiedBuyer && <span style={{ marginLeft: '0.4rem', fontWeight: 500, color: '#1F7A4D' }}>✓ Verified buyer</span>}
               </span>
               <span>{rev.date}</span>
             </div>

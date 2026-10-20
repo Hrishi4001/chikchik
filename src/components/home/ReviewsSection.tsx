@@ -35,7 +35,7 @@ export default function ReviewsSection() {
               <div className="review-card-meta">
                 <span className="review-card-author">
                   {r.author}
-                  {r.verifiedBuyer && <span style={{ marginLeft: '0.4rem', color: '#1B4435', fontWeight: 500 }}>✓ Verified buyer</span>}
+                  {r.verifiedBuyer && <span style={{ marginLeft: '0.4rem', color: '#1F7A4D', fontWeight: 500 }}>✓ Verified buyer</span>}
                 </span>
                 <span>{r.date}</span>
               </div>

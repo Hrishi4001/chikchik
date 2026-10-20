@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Your Wishlist | Heva Elegance',
-  description: 'Pieces you have saved at Heva Elegance.',
+  title: 'Your Wishlist | Chikchik',
+  description: 'Designer lighters you have saved at Chikchik.',
   robots: { index: false },
 };
 

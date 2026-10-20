@@ -9,11 +9,21 @@ import {
   Search, 
   Menu, 
   X, 
-  ChevronDown,
+  ChevronRight,
   MessageCircle
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import { LEGAL } from '@/lib/legal';
+import { COLLECTIONS } from '@/lib/collections';
+
+const ANNOUNCEMENTS = [
+  'Be kind, rewind',
+  'FIRST15 for 15% off your first order',
+  `Free shipping above ₹${LEGAL.freeShippingThreshold}`,
+  'Every lighter comes gift-boxed',
+  'Ships in 1–3 working days',
+  'Designer lighters with a 90s soul'
+];
 
 export default function Header() {
   const pathname = usePathname();
@@ -22,18 +32,19 @@ export default function Header() {
     setIsCartOpen, 
     wishlist, 
     setIsSearchOpen,
+    products,
   } = useStore();
 
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [openSection, setOpenSection] = useState<'category' | 'product' | null>(null);
 
   // When transparent at the top of the homepage over the hero banner, header text is initially white.
-  // On scroll (or on internal pages), header background is white and text is the default brand color #580F00.
+  // On scroll (or on internal pages), header background is white and text is the default ink color.
   const isTransparent = pathname === '/' && !isScrolled;
-  const headerTextColor = isTransparent ? '#FFFFFF' : '#580F00';
-  const badgeBgColor = isTransparent ? '#FFFFFF' : '#580F00';
-  const badgeTextColor = isTransparent ? '#580F00' : '#FFFFFF';
+  const headerTextColor = isTransparent ? '#FFFFFF' : '#111111';
+  const badgeBgColor = 'var(--color-accent)';
+  const badgeTextColor = '#111111';
 
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -46,44 +57,44 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close menus on page route change
+  // While the drawer is open: lock page scroll and close on Escape
   useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setActiveDropdown(null);
-  }, [pathname]);
+    if (!isMenuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setIsMenuOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isMenuOpen]);
 
-  const shopSubmenu = {
-    categories: [
-      { label: 'ALL CLOTHING', href: '/shop' },
-      { label: 'SAREES', href: '/shop?category=sarees' },
-      { label: 'KURTIS & SUITS', href: '/shop?category=kurti-suits' },
-    ]
-  };
+  const categories = [
+    { label: 'All Lighters', href: '/shop' },
+    ...COLLECTIONS.map((c) => ({ label: c.label, href: `/shop?category=${c.id}` })),
+  ];
+
+  const toggleSection = (section: 'category' | 'product') =>
+    setOpenSection((current) => (current === section ? null : section));
 
 
   return (
     <>
-      {/* 1. Announcement Bar */}
-      <div 
-        style={{
-          height: '40px',
-          backgroundColor: '#6D562C',
-          color: '#FFFFFF',
-          fontSize: '0.74rem',
-          letterSpacing: '0.12em',
-          fontWeight: 400,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          position: 'relative',
-          paddingLeft: '1.5rem',
-          paddingRight: '1.5rem',
-          textTransform: 'uppercase',
-          fontFamily: 'var(--font-button-family)',
-          zIndex: 950
-        }}
-      >
-        <span className="announcement-text">FIRST15 FOR A 15% OFF ON YOUR FIRST ORDER</span>
+      {/* 1. Announcement Bar: messages scroll right to left; the second copy makes the loop seamless */}
+      <div className="announcement-bar" role="region" aria-label="Announcements">
+        <div className="announcement-track">
+          {[0, 1].map((copy) => (
+            <ul key={copy} className="announcement-group" aria-hidden={copy === 1 || undefined}>
+              {ANNOUNCEMENTS.map((msg) => (
+                <li key={msg}>
+                  {msg}
+                  <span className="announcement-sep" aria-hidden="true">★</span>
+                </li>
+              ))}
+            </ul>
+          ))}
+        </div>
       </div>
 
       {/* 2. Main Navigation Header (65px height) */}
@@ -112,116 +123,21 @@ export default function Header() {
             position: 'relative'
           }}
         >
-          {/* Left: mobile menu button + desktop navigation */}
+          {/* Left: menu button opens the side drawer */}
           <div style={{ display: 'flex', alignItems: 'center', height: '100%', flex: 1 }}>
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            style={{ display: 'flex', alignItems: 'center', color: headerTextColor, transition: 'color 0.3s ease' }}
-            className="mobile-only-btn"
-            aria-label="Toggle Navigation"
-          >
-            {isMobileMenuOpen ? <X size={22} color={headerTextColor} /> : <Menu size={22} color={headerTextColor} />}
-          </button>
-
-          {/* Desktop Left: Navigation links */}
-          <nav 
-            className="desktop-nav"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '1.8rem',
-              height: '100%' 
-            }}
-          >
-            <Link
-              href="/shop"
-              style={{
-                fontFamily: 'var(--font-button-family)',
-                fontSize: '0.8rem',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: headerTextColor,
-                fontWeight: 500,
-                transition: 'color 0.3s ease, opacity 0.2s'
+            <button
+              onClick={() => {
+                setOpenSection(null);
+                setIsMenuOpen(true);
               }}
+              style={{ display: 'flex', alignItems: 'center', color: headerTextColor, transition: 'color 0.3s ease' }}
+              className="menu-btn"
+              aria-label="Open menu"
+              aria-expanded={isMenuOpen}
+              aria-controls="nav-drawer"
             >
-              NEW ARRIVALS
-            </Link>
-
-            {/* SHOP Megamenu dropdown trigger */}
-            <div 
-              style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center' }}
-              onMouseEnter={() => setActiveDropdown('shop')}
-              onMouseLeave={() => setActiveDropdown(null)}
-            >
-              <Link
-                href="/shop"
-                style={{
-                  fontFamily: 'var(--font-button-family)',
-                  fontSize: '0.8rem',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: headerTextColor,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  transition: 'color 0.3s ease'
-                }}
-              >
-                <span>SHOP</span>
-                <ChevronDown size={11} style={{ opacity: 0.7 }} />
-              </Link>
-
-              {activeDropdown === 'shop' && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '65px',
-                    left: '-2rem',
-                    width: '260px',
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #EBEBEB',
-                    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.08)',
-                    padding: '2.5rem 3rem',
-                    display: 'grid',
-                    gridTemplateColumns: '1fr',
-                    gap: '2.5rem',
-                    zIndex: 1000,
-                    animation: 'fadeIn 0.2s ease forwards'
-                  }}
-                >
-                  {/* Col 1: Categories */}
-                  <div>
-                    <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.72rem', letterSpacing: '0.12em', color: '#580F00', opacity: 0.75, textTransform: 'uppercase', marginBottom: '1.2rem', fontWeight: 600 }}>
-                      CATEGORIES
-                    </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                      {shopSubmenu.categories.map((item) => (
-                        <Link
-                          key={item.label}
-                          href={item.href}
-                          style={{
-                            fontFamily: 'var(--font-body-family)',
-                            fontSize: '0.88rem',
-                            color: '#580F00',
-                            letterSpacing: '0.02em',
-                            transition: 'color 0.2s'
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = '#580F00')}
-                          onMouseLeave={(e) => (e.currentTarget.style.color = '#580F00')}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-              )}
-            </div>
-
-          </nav>
+              <Menu size={22} color={headerTextColor} />
+            </button>
           </div>
 
           {/* Center: Brand Logo */}
@@ -240,21 +156,14 @@ export default function Header() {
                 textDecoration: 'none'
               }}
             >
-              <span
-                className="header-logo"
-                style={{
-                  fontFamily: 'var(--font-heading-family)',
-                  fontSize: '1.45rem',
-                  fontWeight: 500,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: headerTextColor,
-                  whiteSpace: 'nowrap',
-                  transition: 'color 0.3s ease'
-                }}
-              >
-                HEVA ELEGANCE
-              </span>
+              <img
+                src="/images/logo.png"
+                alt="Chikchik"
+                className="header-logo-img"
+                width={594}
+                height={483}
+                style={{ display: 'block', height: '54px', width: 'auto' }}
+              />
             </Link>
           </div>
 
@@ -339,87 +248,65 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer */}
-        {isMobileMenuOpen && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              height: 'calc(100dvh - 65px)',
-              backgroundColor: '#FFFFFF',
-              zIndex: 999,
-              padding: '2rem 1.5rem',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem',
-              borderTop: '1px solid #EBEBEB'
-            }}
-          >
-            <Link
-              href="/shop"
-              style={{
-                fontFamily: 'var(--font-button-family)',
-                fontSize: '1rem',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: '#580F00',
-                fontWeight: 500
-              }}
-            >
-              NEW ARRIVALS
-            </Link>
-
-            <div style={{ borderTop: '1px solid #EBEBEB', paddingTop: '1rem' }}>
-              <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.75rem', letterSpacing: '0.12em', color: '#580F00', opacity: 0.8, textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 600 }}>
-                SHOP CATEGORIES
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingLeft: '0.5rem' }}>
-                {shopSubmenu.categories.map((c) => (
-                  <Link key={c.label} href={c.href} style={{ fontSize: '0.92rem', color: '#580F00', padding: '0.35rem 0' }}>
-                    {c.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ borderTop: '1px solid #EBEBEB', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-              <Link href="/wishlist" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.92rem', color: '#580F00' }}>
-                <Heart size={18} strokeWidth={1.7} /> Wishlist{wishlist.length > 0 ? ` (${wishlist.length})` : ''}
-              </Link>
-            </div>
-
-            <div style={{ borderTop: '1px solid #EBEBEB', paddingTop: '1rem' }}>
-              <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.75rem', letterSpacing: '0.12em', color: '#580F00', opacity: 0.8, textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 600 }}>
-                HELP
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingLeft: '0.5rem' }}>
-                {[
-                  { label: 'Size Guide', href: '/pages/size-chart' },
-                  { label: 'Shipping & Delivery', href: '/pages/shipping-policy' },
-                  { label: 'Returns & Exchange', href: '/pages/return-exchange-policy' },
-                  { label: 'FAQ', href: '/pages/faq' },
-                  { label: 'Contact Us', href: '/pages/contact-us' }
-                ].map((l) => (
-                  <Link key={l.href} href={l.href} style={{ fontSize: '0.92rem', color: '#580F00', padding: '0.35rem 0' }}>
-                    {l.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <a
-              href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}`}
-              style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', minHeight: '48px', borderRadius: '999px', border: '1px solid #580F00', color: '#580F00', fontSize: '0.85rem', letterSpacing: '0.05em' }}
-            >
-              <MessageCircle size={18} strokeWidth={1.7} /> Chat on WhatsApp
-            </a>
-          </div>
-        )}
       </header>
 
+      {/* Side Navigation Drawer */}
+      {isMenuOpen && (
+        <>
+          <div className="nav-drawer-backdrop" onClick={() => setIsMenuOpen(false)} />
+          {/* Following any link closes the drawer */}
+          <nav
+            id="nav-drawer"
+            className="nav-drawer"
+            aria-label="Main menu"
+            onClick={(e) => (e.target as HTMLElement).closest('a') && setIsMenuOpen(false)}
+          >
+            <button className="nav-drawer-close" onClick={() => setIsMenuOpen(false)} aria-label="Close menu">
+              <X size={22} />
+            </button>
+
+            <Link href="/shop?sort=newest" className="nav-drawer-row">New Arrivals</Link>
+
+            <button className="nav-drawer-row" aria-expanded={openSection === 'category'} onClick={() => toggleSection('category')}>
+              Shop by Category <ChevronRight size={20} />
+            </button>
+            {openSection === 'category' && (
+              <div className="nav-drawer-sub">
+                {categories.map((c) => (
+                  <Link key={c.href} href={c.href}>{c.label}</Link>
+                ))}
+              </div>
+            )}
+
+            <button className="nav-drawer-row" aria-expanded={openSection === 'product'} onClick={() => toggleSection('product')}>
+              Shop by Product <ChevronRight size={20} />
+            </button>
+            {openSection === 'product' && (
+              <div className="nav-drawer-sub">
+                {products.map((p) => (
+                  <Link key={p.id} href={`/product/${p.slug}`}>
+                    {p.images[0] && <img src={p.images[0]} alt="" width={40} height={40} loading="lazy" />}
+                    {p.title}
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            <Link href="/wishlist" className="nav-drawer-row">
+              Wishlist{wishlist.length > 0 ? ` (${wishlist.length})` : ''}
+            </Link>
+            <Link href="/pages/about-us" className="nav-drawer-row">Curious? About Us</Link>
+            <Link href="/pages/shipping-policy" className="nav-drawer-row">Shipping &amp; Delivery</Link>
+            <Link href="/pages/return-exchange-policy" className="nav-drawer-row">Returns &amp; Exchanges</Link>
+            <Link href="/pages/faq" className="nav-drawer-row">FAQ</Link>
+            <Link href="/pages/contact-us" className="nav-drawer-row">Contact Us</Link>
+
+            <a href={`https://wa.me/${LEGAL.whatsapp.replace(/\D/g, '')}`} className="nav-drawer-whatsapp">
+              <MessageCircle size={18} strokeWidth={1.7} /> Chat on WhatsApp
+            </a>
+          </nav>
+        </>
+      )}
     </>
   );
 }

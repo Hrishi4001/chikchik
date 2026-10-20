@@ -10,7 +10,7 @@ export default function QuickViewModal() {
   const { quickViewProduct, setQuickViewProduct, addToCart, formatPrice, checkPincode } = useStore();
 
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState<SizeOption>('M');
+  const [selectedSize, setSelectedSize] = useState<SizeOption>('');
   const [selectedStitching, setSelectedStitching] = useState<StitchingOption | undefined>(undefined);
   const [pincodeInput, setPincodeInput] = useState('');
   const [pincodeResult, setPincodeResult] = useState<{ checked: boolean; serviceable: boolean; city?: string; days?: number } | null>(null);
@@ -19,7 +19,7 @@ export default function QuickViewModal() {
 
   const currentSize = quickViewProduct.sizes.includes(selectedSize)
     ? selectedSize
-    : quickViewProduct.sizes[0] || 'Custom Fit';
+    : quickViewProduct.sizes[0] || '';
 
   const handlePincodeCheck = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +99,7 @@ export default function QuickViewModal() {
                       height: '75px',
                       borderRadius: '4px',
                       overflow: 'hidden',
-                      border: selectedImage === idx ? '2px solid var(--accent-terracotta)' : '1px solid var(--border-medium)',
+                      border: selectedImage === idx ? '2px solid #111111' : '1px solid var(--border-medium)',
                       padding: 0
                     }}
                   >
@@ -113,7 +113,7 @@ export default function QuickViewModal() {
           {/* Details & Action Side */}
           <div style={{ padding: '2rem 1.75rem', display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent-gold)', fontWeight: 600 }}>
-              {quickViewProduct.categoryLabel} • {quickViewProduct.origin}
+              {quickViewProduct.categoryLabel} • {quickViewProduct.sizes.join(' / ')}
             </span>
 
             <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.25rem', lineHeight: 1.2 }}>
@@ -143,10 +143,7 @@ export default function QuickViewModal() {
             <div style={{ marginTop: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Select Size
-                </span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--accent-terracotta)', textDecoration: 'underline' }}>
-                  Standard Indian Measurements
+                  Option
                 </span>
               </div>
 
@@ -172,13 +169,13 @@ export default function QuickViewModal() {
               </div>
             </div>
 
-            {/* Stitching / Blouse Customization Option */}
+            {/* Optional add-ons (unused for lighters; kept for products that define them) */}
             {quickViewProduct.stitchingOptions && quickViewProduct.stitchingOptions.length > 0 && (
               <div style={{ marginTop: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                  <Scissors size={14} color="var(--accent-terracotta)" />
+                  <Scissors size={14} color="#111111" />
                   <span style={{ fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Blouse & Tailoring Service
+                    Add-on
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -190,7 +187,7 @@ export default function QuickViewModal() {
                         textAlign: 'left',
                         padding: '0.65rem 0.85rem',
                         borderRadius: '4px',
-                        border: selectedStitching?.id === opt.id ? '1.5px solid var(--accent-terracotta)' : '1px solid var(--border-subtle)',
+                        border: selectedStitching?.id === opt.id ? '1.5px solid #111111' : '1px solid var(--border-subtle)',
                         backgroundColor: selectedStitching?.id === opt.id ? '#FDF9F8' : 'var(--bg-canvas)',
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -201,7 +198,7 @@ export default function QuickViewModal() {
                         <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{opt.name}</p>
                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{opt.description}</p>
                       </div>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-terracotta)' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#111111' }}>
                         {opt.price === 0 ? 'Included' : `+ ${formatPrice(opt.price)}`}
                       </span>
                     </button>

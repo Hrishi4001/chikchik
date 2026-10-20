@@ -57,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <strong>Heva Elegance</strong>
+          <strong>Chikchik</strong>
           <span>Admin</span>
         </div>
         <nav aria-label="Admin">{links}</nav>

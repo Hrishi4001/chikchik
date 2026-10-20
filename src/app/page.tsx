@@ -1,656 +1,325 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import ProductCard from '@/components/product/ProductCard';
 import type { Product } from '@/lib/types';
-import ReviewsSection from '@/components/home/ReviewsSection';
-import FaqGroups from '@/components/faq/FaqGroups';
+import { FAQ_GROUPS } from '@/lib/faq';
+import { LEGAL } from '@/lib/legal';
+
+// Width and height are the source pixels, so each label keeps its own shape in the gallery
+const LABEL_ART = [
+  { src: '/images/labels/eyes.jpg', w: 500, h: 345, title: 'Special Quality', alt: 'Special Quality Safety Match label with kohl-lined eyes' },
+  { src: '/images/labels/king.jpg', w: 451, h: 640, title: 'King Delux', alt: 'King Match Delux Quality label' },
+  { src: '/images/labels/husn-ki-teeli.jpg', w: 736, h: 1308, title: 'Husn ki Teeli', alt: 'Husn ki Teeli safety matches label' },
+  { src: '/images/labels/kolhapuri.jpg', w: 736, h: 981, title: 'Kolhapuri', alt: 'Kolhapuri chappal matchbox-style poster' },
+  { src: '/images/labels/bollywood-queen.jpg', w: 735, h: 919, title: 'Bollywood Queen', alt: 'Bollywood Queen matchbox-style poster' },
+  { src: '/images/labels/tiger.jpg', w: 736, h: 1104, title: 'Tiger', alt: 'Tiger trade mark matchbox label' }
+];
+
+// One editorial banner + product rail per category, in this order
+const CATEGORY_BANNERS = [
+  {
+    id: '90s-nostalgia',
+    eyebrow: 'The',
+    title: "90's Nostalgia",
+    images: ['/images/labels/husn-ki-teeli.jpg', '/images/labels/bollywood-queen.jpg', '/images/labels/eyes.jpg']
+  },
+  {
+    id: 'rogg',
+    eyebrow: 'The',
+    title: 'Rogg',
+    images: ['/images/labels/tiger.jpg', '/images/labels/king.jpg', '/images/labels/kolhapuri.jpg']
+  }
+];
+
+const MARQUEE_ITEMS = ['Solid metal build', 'Gift-ready packaging', `Free shipping above ₹${LEGAL.freeShippingThreshold}`, 'Secure payments'];
+
+const SHOP_LINKS = [
+  { label: 'All Lighters', href: '/shop' },
+  { label: "90's Nostalgia", href: '/shop?category=90s-nostalgia' },
+  { label: 'Rogg', href: '/shop?category=rogg' }
+];
 
 export default function HomePage() {
-  const { products, formatPrice } = useStore();
+  const { products } = useStore();
 
   // Lead every rail with pieces that can actually be bought
   const available = (p: Product) => p.inStock && p.stockCount > 0;
   const byStock = [...products].sort((a, b) => Number(available(b)) - Number(available(a)));
-  const fromPrice = (category: string) =>
-    Math.min(...products.filter((p) => p.category === category && available(p)).map((p) => p.price));
+  const freshReleases = byStock.filter((p) => p.isNewArrival).concat(byStock.filter((p) => !p.isNewArrival)).slice(0, 12);
 
-  // Carousel 1: New Arrivals
-  const carousel1Products = byStock.filter((p) => p.isNewArrival).concat(byStock.filter((p) => !p.isNewArrival)).slice(0, 12);
-
-  // Carousel 2: Kurti Suits row
-  const kurtiSuits = byStock.filter((p) => p.category === 'kurti-suits').slice(0, 12);
-
-  // Carousel 3: Sarees row
-  const sarees = byStock.filter((p) => p.category === 'sarees').slice(0, 12);
-
-  // Bento: a large saree beside two smaller pieces, drawn from beyond the carousels.
-  const pool = byStock.slice(20).filter((p) => p.images?.length);
-  const bentoSarees = pool.filter((p) => p.category === 'sarees');
-  const bentoOthers = pool.filter((p) => p.category !== 'sarees');
-  const featuredProducts = [bentoSarees[0], bentoOthers[0] ?? bentoSarees[2], bentoSarees[1]].filter(Boolean) as Product[];
-
-  const instagramPosts = products.filter((p) => p.images?.length).slice(0, 12);
-
-  const categoryCards = [
-    {
-      title: 'Sarees',
-      href: '/shop?category=sarees',
-      image: 'https://static.wixstatic.com/media/80e345_55dd42dcf4734ed68704cf25097b1735~mv2.webp/v1/fill/w_800,h_1067,al_c,q_85/file.webp'
-    },
-    {
-      title: 'Kurtis & Suits',
-      href: '/shop?category=kurti-suits',
-      image: 'https://static.wixstatic.com/media/80e345_a4f1adb0a4384b0c9b466dffa9d4724e~mv2.jpeg/v1/fill/w_800,h_1067,al_c,q_85/file.jpeg'
-    }
-  ];
-
-  // Carousel 1 scroll ref
-  const carousel1Ref = useRef<HTMLDivElement>(null);
-
-  const scrollCarousel = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
-    if (ref.current) {
-      const scrollAmount = ref.current.clientWidth * 0.75;
-      ref.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-    }
-  };
-
+  const productFaqs = FAQ_GROUPS.find((g) => g.heading === 'Products & Gifting')?.items.slice(0, 3) ?? [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0, backgroundColor: '#FFFFFF' }}>
-      
-      {/* ========================================================
-          SECTION 1: HERO BANNER (section-hero-banner)
-          Full viewport height; copy sits on the soft left half on desktop
-          ======================================================== */}
-      <section 
-        className="hero-section-full"
-        style={{
-          position: 'relative',
-          height: 'calc(100vh - 40px)',
-          minHeight: '640px',
-          width: '100%',
-          overflow: 'hidden'
-        }}
-      >
-        {/* Hero Image (right half on desktop, full width on mobile) */}
+
+      {/* 1. HERO: full-bleed artwork with a pill CTA */}
+      <section className="hero-section-full">
         <picture className="hero-picture">
+          <source media="(max-width: 749px)" srcSet="/images/labels/tiger.jpg" width={736} height={1104} />
           <img
-            src="/images/hero-mobile.jpg"
-            alt="Heva Elegance"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center top'
-            }}
+            src="/images/labels/eyes.jpg"
+            alt="Vintage Special Quality Safety Match label with kohl-lined eyes"
+            width={500}
+            height={345}
           />
         </picture>
 
-        {/* Bottom Content Alignment */}
-        <div
-          className="container"
-          style={{
-            position: 'relative',
-            zIndex: 5,
-            paddingBottom: '3.5rem',
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: '1.25rem'
-          }}
-        >
+        <div className="container hero-content">
           <div className="hero-copy">
-            <p className="hero-eyebrow">Sarees · Kurtis &amp; Suits</p>
-            <h1 className="hero-title">Everyday ease, festive grace.</h1>
-            <p className="hero-sub">
-              {Number.isFinite(fromPrice('sarees')) && <>Sarees from {formatPrice(fromPrice('sarees'))} · </>}
-              {Number.isFinite(fromPrice('kurti-suits')) && <>Kurtis from {formatPrice(fromPrice('kurti-suits'))} · </>}
-              Free shipping above ₹699
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <Link href="/shop?category=sarees" className="button--white-outlined hero-cta-solid">
-                Shop Sarees
-              </Link>
-              <Link href="/shop?category=kurti-suits" className="button--white-outlined">
-                Shop Kurtis
-              </Link>
-            </div>
+            <h1 className="hero-title">Light it up like it’s 1995.</h1>
+            <Link href="/shop" className="home-pill">Shop the collection.</Link>
           </div>
         </div>
       </section>
 
-      {/* ========================================================
-          SECTION 1B: SHOP BY CATEGORY
-          Two full-bleed image tiles linking to each category
-          ======================================================== */}
-      <section
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 'clamp(0.5rem, 1.2vw, 1rem)',
-          width: '100%',
-          paddingTop: 'clamp(0.5rem, 1.2vw, 1rem)'
-        }}
-      >
-        {categoryCards.map((cat) => (
-          <Link
-            key={cat.href}
-            href={cat.href}
-            aria-label={cat.title}
-            className="category-tile"
-            style={{
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'flex-end',
-              // Side by side on phones too, so products start within the first scroll
-              minHeight: 'clamp(240px, 64vw, 80vh)',
-              overflow: 'hidden',
-              textDecoration: 'none'
-            }}
-          >
-            <img
-              src={cat.image}
-              alt={cat.title}
-              className="category-tile-img"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover'
-              }}
-            />
-
-            {/* Ambient Overlay */}
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                background: 'linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.5) 100%)',
-                zIndex: 2
-              }}
-            />
-
-            <div
-              style={{
-                position: 'relative',
-                zIndex: 5,
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 'clamp(0.5rem, 1.5vw, 0.9rem)',
-                padding: '0 0.75rem clamp(1rem, 4vw, 2.5rem)'
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: 'var(--font-heading-family)',
-                  fontSize: 'clamp(0.85rem, 2.4vw, 1.15rem)',
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: '#FFFFFF',
-                  fontWeight: 400
-                }}
-              >
-                {cat.title}
-              </span>
-              <span
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '8px',
-                  backgroundColor: '#580F00',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}
-              >
-                <ArrowRight size={16} color="#FFFFFF" strokeWidth={1.8} />
-              </span>
-            </div>
-          </Link>
-        ))}
-
-        <style jsx>{`
-          .category-tile :global(.category-tile-img) {
-            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-          }
-          .category-tile:hover :global(.category-tile-img) {
-            transform: scale(1.03);
-          }
-        `}</style>
+      {/* 2. FEATURED TEXT + SLIDESHOW: matchbox label art */}
+      <section className="label-gallery-section">
+        <div className="container">
+          <div className="label-gallery-head">
+            <h2 className="label-gallery-title">Matchbox Label Art</h2>
+            <p className="label-gallery-sub">The kirana-shop labels we collected as kids, and the designs they became.</p>
+          </div>
+        </div>
+        <LabelSlideshow />
       </section>
 
-      {/* ========================================================
-          SECTION 2: FEATURED PRODUCTS CAROUSEL 1 (New Arrivals)
-          ======================================================== */}
-      <section
-        style={{
-          paddingTop: '3.5rem',
-          paddingBottom: '3.5rem',
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #EBEBEB'
-        }}
-      >
-        <div className="container">
-          {/* Section Header & Tab Controls */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '2rem'
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: 'var(--font-heading-family)',
-                fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
-                fontWeight: 400,
-                color: '#580F00',
-                letterSpacing: '-0.02em',
-                margin: 0
-              }}
-            >
-              New Arrivals
-            </h2>
+      {/* 3. FEATURED TEXT + COLLECTION RAIL: fresh releases */}
+      <ProductRail title="Fresh Releases" products={freshReleases} />
 
-            {/* Slider Navigation Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                onClick={() => scrollCarousel(carousel1Ref, 'left')}
-                className="swiper-nav-btn"
-                aria-label="Previous Slide"
-              >
+      {/* 4. CATEGORY BANNER + RAIL, once per category */}
+      {CATEGORY_BANNERS.map((cat) => {
+        const items = byStock.filter((p) => p.category === cat.id);
+        return (
+          <React.Fragment key={cat.id}>
+            <CategoryBanner href={`/shop?category=${cat.id}`} eyebrow={cat.eyebrow} title={cat.title} images={cat.images} />
+            {items.length > 0 && <ProductRail products={items} centered />}
+          </React.Fragment>
+        );
+      })}
+
+      {/* 5. FEATURED TEXT: brand one-liner */}
+      <section className="home-statement">
+        <div className="container">
+          <h2>The kitsch. The classic. The not boring. That’s who we are.</h2>
+          <Link href="/pages/about-us">And more &gt;&gt;&gt;</Link>
+        </div>
+      </section>
+
+      {/* 6. IMAGE WITH TEXT: label collage beside the brand statement */}
+      <section className="story-section">
+        <div className="container story-layout">
+          <div className="story-collage" aria-hidden="true">
+            <img className="story-card story-card--back" src="/images/labels/king.jpg" alt="" width={451} height={640} loading="lazy" />
+            <img className="story-card story-card--front" src="/images/labels/husn-ki-teeli.jpg" alt="" width={736} height={1308} loading="lazy" />
+            <span className="story-stamp">Est. 1995<br />in spirit</span>
+          </div>
+
+          <div className="story-copy">
+            <p className="story-eyebrow">Made to be kept</p>
+            <h2 className="story-title">Built like the 90s.</h2>
+            <p className="story-body">
+              Solid metal, honest mechanics and finishes you&rsquo;ll want to show off. Like a favourite mixtape, every design is meant to be kept, passed around and talked about.
+            </p>
+            <ul className="story-chips">
+              <li>Solid metal body</li>
+              <li>Flip-top click</li>
+              <li>Gift-boxed</li>
+            </ul>
+            <Link href="/shop" className="story-cta">
+              Press play on the range <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. SCROLLING CONTENT: promise marquee */}
+      <div className="home-marquee" aria-label={MARQUEE_ITEMS.join(', ')}>
+        <div className="home-marquee-track" aria-hidden="true">
+          {[0, 1, 2, 3].map((n) =>
+            MARQUEE_ITEMS.map((item) => (
+              <span key={`${n}-${item}`}>
+                {item}
+                <i>✦</i>
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* 8. FEATURED TEXT x2: brand paragraphs on a dark band */}
+      <section className="home-manifesto">
+        <div className="container">
+          <p>
+            We take fire seriously and everything else lightly. Our lighters are loud and nostalgic, kitsch and collectible, each one wearing a label from the kirana-shop matchboxes we grew up with. Flick it. Gift it. Show it off. Keep it forever.
+          </p>
+        </div>
+        <div className="container">
+          <p>
+            Chikchik is a design house that turns India&rsquo;s vintage matchbox art into solid metal lighters. We believe the small things you carry every day should say something about you, so every piece pairs a proper mechanism with artwork worth talking about.
+          </p>
+        </div>
+      </section>
+
+      {/* 9. COLLAPSIBLE ROWS: FAQ */}
+      <section className="home-faq">
+        <div className="container">
+          <h2>All your questions. Here.</h2>
+          <div className="home-faq-list">
+            {productFaqs.map((f) => (
+              <details key={f.q} className="faq-item">
+                <summary>{f.q}</summary>
+                <div className="policy-body" style={{ paddingBottom: '1rem' }}>
+                  <p>{f.a}</p>
+                </div>
+              </details>
+            ))}
+            <Link href="/pages/faq" className="home-faq-more">See all FAQs &gt;&gt;&gt;</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 10. SEO BLOCK: read more + shop links */}
+      <SeoBlock />
+
+    </div>
+  );
+}
+
+function scrollTrack(ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') {
+  if (!ref.current) return;
+  const amount = ref.current.clientWidth * 0.75;
+  ref.current.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
+}
+
+function LabelSlideshow() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // On phones each label keeps its own height, so size the track to the slide in view (no empty space below shorter labels)
+  useEffect(() => {
+    const track = ref.current;
+    if (!track) return;
+    const mobile = window.matchMedia('(max-width: 749px)');
+    const fit = () => {
+      if (!mobile.matches) {
+        track.style.height = '';
+        return;
+      }
+      const slide = track.children[Math.round(track.scrollLeft / track.clientWidth)] as HTMLElement | undefined;
+      if (slide) track.style.height = `${slide.offsetHeight}px`;
+    };
+    fit();
+    track.addEventListener('scroll', fit, { passive: true });
+    window.addEventListener('resize', fit);
+    track.querySelectorAll('img').forEach((img) => img.addEventListener('load', fit));
+    return () => {
+      track.removeEventListener('scroll', fit);
+      window.removeEventListener('resize', fit);
+      track.querySelectorAll('img').forEach((img) => img.removeEventListener('load', fit));
+    };
+  }, []);
+
+  return (
+    <div className="label-slideshow">
+      <div ref={ref} className="label-slideshow-track">
+        {LABEL_ART.map((art) => (
+          <figure key={art.src} className="label-slide">
+            <img src={art.src} alt={art.alt} width={art.w} height={art.h} loading="lazy" />
+            <figcaption>{art.title}</figcaption>
+          </figure>
+        ))}
+      </div>
+      <button className="label-slideshow-btn is-prev" onClick={() => scrollTrack(ref, 'left')} aria-label="Previous label">
+        <ChevronLeft size={18} />
+      </button>
+      <button className="label-slideshow-btn is-next" onClick={() => scrollTrack(ref, 'right')} aria-label="Next label">
+        <ChevronRight size={18} />
+      </button>
+    </div>
+  );
+}
+
+function ProductRail({ title, products, centered }: { title?: string; products: Product[]; centered?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  return (
+    <section className={`home-rail${centered ? ' is-centered' : ''}`}>
+      <div className="container">
+        {title && (
+          <div className="home-rail-head">
+            <h2 className="home-rail-title">{title}</h2>
+            <div className="home-rail-nav">
+              <button onClick={() => scrollTrack(ref, 'left')} className="swiper-nav-btn" aria-label="Previous products">
                 <ChevronLeft size={18} />
               </button>
-              <button
-                onClick={() => scrollCarousel(carousel1Ref, 'right')}
-                className="swiper-nav-btn"
-                aria-label="Next Slide"
-              >
+              <button onClick={() => scrollTrack(ref, 'right')} className="swiper-nav-btn" aria-label="Next products">
                 <ChevronRight size={18} />
               </button>
             </div>
           </div>
-
-          {/* Horizontal Swiper Carousel Track */}
-          <div 
-            ref={carousel1Ref}
-            className="swiper-track-custom"
-          >
-            {carousel1Products.map((product) => (
-              <div 
-                key={product.id} 
-                className="swiper-slide-item"
-              >
-                <ProductCard product={product} />
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom View All Button */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
-            <Link
-              href="/shop"
-              className="button button--outlined"
-            >
-              View all
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================
-          SECTION 3: FULL WIDTH BANNER 1 (Editorial Statement)
-          Heva saree editorial + Quote + "Explore All Products"
-          ======================================================== */}
-      <section
-        style={{
-          position: 'relative',
-          width: '100%',
-          minHeight: 'min(85vh, 120vw)',
-          display: 'flex',
-          alignItems: 'flex-end',
-          overflow: 'hidden'
-        }}
-      >
-        <img
-          src="https://static.wixstatic.com/media/80e345_c40e42c60e374f988924a441cea3315a~mv2.jpg/v1/fit/w_1920,h_2560,q_90/file.jpg"
-          alt="Heva Elegance"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover'
-          }}
-        />
-
-        {/* Ambient Overlay */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.45) 100%)',
-            zIndex: 2
-          }}
-        />
-
-        {/* Editorial Text Content */}
-        <div
-          className="container"
-          style={{
-            position: 'relative',
-            zIndex: 5,
-            paddingBottom: '4rem',
-            maxWidth: '1480px',
-            width: '100%'
-          }}
-        >
-          <div style={{ maxWidth: '640px', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-            <h2
-              style={{
-                fontFamily: 'var(--font-heading-family)',
-                fontSize: 'clamp(1.6rem, 3.2vw, 2.4rem)',
-                fontWeight: 400,
-                lineHeight: 1.25,
-                color: '#FFFFFF',
-                letterSpacing: '-0.02em',
-                margin: 0
-              }}
-            >
-              Woven for the festivals you look forward to, and the everyday moments in between.
-            </h2>
-
-            <div>
-              <Link
-                href="/shop"
-                className="button--white-outlined"
-              >
-                Explore All Products
-              </Link>
+        )}
+        <div ref={ref} className="swiper-track-custom">
+          {products.map((product) => (
+            <div key={product.id} className="swiper-slide-item">
+              <ProductCard product={product} />
             </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CategoryBanner({ href, eyebrow, title, images }: { href: string; eyebrow: string; title: string; images: string[] }) {
+  return (
+    <section className="cat-banner">
+      <Link href={href} className="cat-banner-frame" aria-label={`Shop ${title}`}>
+        <span className="cat-banner-images">
+          {images.map((src) => (
+            <img key={src} src={src} alt="" loading="lazy" />
+          ))}
+        </span>
+        <span className="cat-banner-title">
+          <small>{eyebrow}</small>
+          {title}
+        </span>
+        <span className="home-pill">Shop now</span>
+      </Link>
+    </section>
+  );
+}
+
+function SeoBlock() {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <section className="home-seo">
+      <div className="container">
+        <div className="home-seo-box">
+          <div className="home-seo-about">
+            <h2>Matchbox Art Lighters &amp; Gifts — Chikchik</h2>
+            {expanded && (
+              <p>
+                Chikchik makes solid metal jet-flame and flip-top lighters printed with vintage Indian matchbox label art, from Husn ki Teeli to King Delux and Tiger. Every lighter ships gift-boxed across India, with free shipping above ₹{LEGAL.freeShippingThreshold}.
+              </p>
+            )}
+            <button type="button" onClick={() => setExpanded((v) => !v)}>
+              {expanded ? 'Read less' : 'Read more...'}
+            </button>
           </div>
-        </div>
-      </section>
-
-      {/* ========================================================
-          SECTION 4: KURTI SUITS
-          Swipeable product row (no auto-scroll)
-          ======================================================== */}
-      <section
-        style={{
-          paddingTop: '4rem',
-          paddingBottom: '4rem',
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #EBEBEB'
-        }}
-      >
-        <div className="container">
-          <h2
-            style={{
-              fontFamily: 'var(--font-heading-family)',
-              fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
-              fontWeight: 400,
-              color: '#580F00',
-              letterSpacing: '-0.02em',
-              margin: '0 0 2rem'
-            }}
-          >
-            Kurtis &amp; Suits
-          </h2>
-        </div>
-
-        <ProductRow products={kurtiSuits} />
-
-        <div className="container">
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
-            <Link
-              href="/shop?category=kurti-suits"
-              className="button button--outlined"
-            >
-              View all
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================
-          SECTION 4B: SAREES
-          Swipeable product row (no auto-scroll)
-          ======================================================== */}
-      {sarees.length > 0 && (
-      <section
-        style={{
-          paddingTop: '4rem',
-          paddingBottom: '4rem',
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #EBEBEB'
-        }}
-      >
-        <div className="container">
-          <h2
-            style={{
-              fontFamily: 'var(--font-heading-family)',
-              fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
-              fontWeight: 400,
-              color: '#580F00',
-              letterSpacing: '-0.02em',
-              margin: '0 0 2rem'
-            }}
-          >
-            Sarees
-          </h2>
-        </div>
-
-        <ProductRow products={sarees} />
-
-        <div className="container">
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
-            <Link
-              href="/shop?category=sarees"
-              className="button button--outlined"
-            >
-              View all
-            </Link>
-          </div>
-        </div>
-      </section>
-      )}
-
-      {/* ========================================================
-          SECTION 5: FEATURED BENTO
-          One large product left, two stacked on the right (all viewports)
-          ======================================================== */}
-      {featuredProducts.length === 3 && (
-        <section style={{ paddingTop: '1rem', paddingBottom: '4rem', backgroundColor: '#FFFFFF' }}>
-          <div className="container">
-            <div className="feature-bento">
-              {featuredProducts.map((p, i) => (
-                <Link key={p.id} href={`/product/${p.slug}`} className={`feature-tile${i === 0 ? ' feature-tile--large' : ''}`}>
-                  <img src={p.images[0]} alt={p.title} loading="lazy" />
-                  <span className="feature-caption">
-                    <span className="feature-title">{p.title}</span>
-                    <span className="feature-price">{formatPrice(p.price)}</span>
-                  </span>
-                </Link>
+          <div className="home-seo-links">
+            <p className="home-seo-label">Shop by category</p>
+            <ul>
+              {SHOP_LINKS.map((l) => (
+                <li key={l.label}>
+                  <Link href={l.href}>{l.label}</Link>
+                </li>
               ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* SECTION 6: CUSTOMER REVIEWS */}
-      <ReviewsSection />
-
-      {/* ========================================================
-          SECTION 7: TRUST INDICATORS (section-trust-indicators)
-          Conscious craftsmanship, handloom origins & shipping
-          ======================================================== */}
-      <section
-        style={{
-          paddingTop: '2.5rem',
-          paddingBottom: '2.5rem',
-          backgroundColor: '#F7F5EF',
-          borderBottom: '1px solid #EBEBEB'
-        }}
-      >
-        <div className="container">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '2rem',
-              alignItems: 'center',
-              textAlign: 'center'
-            }}
-          >
-            <div>
-              <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#580F00', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Quality Fabrics
-              </p>
-              <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '0.82rem', color: '#5C5852', margin: 0 }}>
-                Silks, crepes and breathable cottons
-              </p>
-            </div>
-
-            <div>
-              <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#580F00', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Easy 7-Day Returns
-              </p>
-              <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '0.82rem', color: '#5C5852', margin: 0 }}>
-                Hassle-free returns &amp; size exchanges
-              </p>
-            </div>
-
-            <div>
-              <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#580F00', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Free Shipping Above ₹699
-              </p>
-              <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '0.82rem', color: '#5C5852', margin: 0 }}>
-                Insured delivery across India
-              </p>
-            </div>
-
-            <div>
-              <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.78rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#580F00', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Cash on Delivery
-              </p>
-              <p style={{ fontFamily: 'var(--font-body-family)', fontSize: '0.82rem', color: '#5C5852', margin: 0 }}>
-                Or pay securely with UPI &amp; cards
-              </p>
-            </div>
+            </ul>
           </div>
         </div>
-      </section>
-
-      {/* ========================================================
-          SECTION 8: INSTAGRAM (#HevaElegance)
-          ======================================================== */}
-      <section style={{ paddingTop: '4rem', paddingBottom: '4rem', backgroundColor: '#FFFFFF' }}>
-        <div className="container" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <p style={{ fontFamily: 'var(--font-button-family)', fontSize: '0.78rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8E8880', marginBottom: '0.5rem' }}>
-            Instagram
-          </p>
-          <h2 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', fontWeight: 500, color: '#580F00', marginBottom: '0.5rem' }}>
-            #HevaElegance
-          </h2>
-          <p style={{ fontSize: '0.88rem', color: '#5C5852', margin: 0 }}>
-            Tag us to be featured in our community of elegance
-          </p>
-        </div>
-        <InstagramCarousel posts={instagramPosts} />
-        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-          <a href={INSTAGRAM_PROFILE_URL} className="insta-follow">
-            <InstagramIcon size={16} /> Follow @hevaelegance
-          </a>
-        </div>
-      </section>
-
-      {/* ========================================================
-          SECTION 9: FAQ
-          ======================================================== */}
-      <section style={{ paddingTop: '4rem', paddingBottom: '4rem', backgroundColor: '#FFFFFF' }}>
-        <div className="container" style={{ maxWidth: '820px' }}>
-          <h2 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', fontWeight: 500, color: '#580F00', textAlign: 'center', marginBottom: '2rem' }}>
-            Frequently Asked Questions
-          </h2>
-          <FaqGroups />
-        </div>
-      </section>
-
-    </div>
-  );
-}
-
-const INSTAGRAM_URL = 'https://www.instagram.com/explore/tags/hevaelegance/';
-const INSTAGRAM_PROFILE_URL = 'https://www.instagram.com/hevaelegance/';
-
-function InstagramIcon({ size = 26 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2" y="2" width="20" height="20" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
-    </svg>
-  );
-}
-
-// Product cards in a static row; swipe/scroll horizontally to see more.
-function ProductRow({ products }: { products: Product[] }) {
-  return (
-    <div className="insta-viewport product-row">
-      <div className="product-row-track">
-        {products.map((p) => (
-          <div key={p.id} className="product-row-item">
-            <ProductCard product={p} />
-          </div>
-        ))}
       </div>
-    </div>
-  );
-}
-
-// Continuous marquee; the list is doubled so the -50% loop point is seamless.
-function InstagramCarousel({ posts }: { posts: Product[] }) {
-  return (
-    <div className="insta-viewport">
-      <div className="insta-track" style={{ animationDuration: `${posts.length * 8}s` }}>
-        {[...posts, ...posts].map((p, i) => (
-          <a
-            key={`${p.id}-${i}`}
-            href={INSTAGRAM_URL}
-            className="insta-tile"
-            aria-label={`View ${p.title} on Instagram`}
-            aria-hidden={i >= posts.length || undefined}
-            tabIndex={i >= posts.length ? -1 : undefined}
-          >
-            <img src={p.images[0]} alt={p.title} loading="lazy" />
-            <span className="insta-overlay">
-              <InstagramIcon />
-            </span>
-          </a>
-        ))}
-      </div>
-    </div>
+    </section>
   );
 }

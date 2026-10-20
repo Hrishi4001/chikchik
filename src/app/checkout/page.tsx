@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Lock,
   ArrowLeft,
   CreditCard,
-  Banknote,
   CheckCircle2,
   Sparkles,
   AlertTriangle,
@@ -17,8 +16,9 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import type { Order } from '@/lib/types';
-import { CART_MILESTONES, COD_LIMIT, EXPRESS_SHIPPING_FEE, STANDARD_SHIPPING_FEE, computeTotals, getCartRewards } from '@/lib/cartRewards';
+import { CART_MILESTONES, EXPRESS_SHIPPING_FEE, STANDARD_SHIPPING_FEE, computeTotals, getCartRewards } from '@/lib/cartRewards';
 import {
+  openCashfreeCheckout,
   openRazorpayCheckout,
   PaymentError,
   placeServerOrder,
@@ -31,7 +31,6 @@ import {
 import MockPaymentSheet, { type MockOutcome } from '@/components/checkout/MockPaymentSheet';
 
 type Step = 1 | 2 | 3;
-type PayOption = 'online' | 'COD';
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#FFFFFF',
@@ -87,11 +86,14 @@ export default function CheckoutPage() {
   const country = 'India';
 
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
-  const [selectedPayOption, setPayOption] = useState<PayOption>('online');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentErrorState, setPaymentError] = useState<string | null>(null);
+  // Cashfree redirect flows land back here via /api/payments/cashfree/return when a payment fails.
+  const returnedFailed = useSearchParams().get('payment') === 'failed';
+  const paymentError =
+    paymentErrorState ?? (returnedFailed ? 'Payment could not be completed. No money was deducted — please retry or choose another method.' : null);
   const [promoInput, setPromoInput] = useState('');
   const [mockSheet, setMockSheet] = useState<{ orderNumber: string; resolve: (r: MockOutcome) => void } | null>(null);
 
@@ -101,8 +103,6 @@ export default function CheckoutPage() {
   const pinInfo = /^\d{6}$/.test(pincode) ? checkPincode(pincode) : null;
   const hasStitching = cart.some((i) => i.selectedStitching && i.selectedStitching.price > 0);
   const { promoDiscount, milestoneDiscount, shippingFee: shippingCost, total: grandTotal } = computeTotals(cartSubtotal, promoCode, shippingMethod);
-  const codAvailable = !!pinInfo?.cod && grandTotal <= COD_LIMIT;
-  const payOption: PayOption = codAvailable ? selectedPayOption : 'online';
   const transitDays = (pinInfo?.days ?? 4) + (shippingMethod === 'express' ? 0 : 2) + (hasStitching ? 5 : 0);
 
 
@@ -159,7 +159,7 @@ export default function CheckoutPage() {
       <div className="container" style={{ padding: '6rem 0', textAlign: 'center' }}>
         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', marginBottom: '1rem' }}>Your Shopping Bag is Empty</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-          Add a saree or kurti to your bag to check out.
+          Nothing here yet. Add a little 90s spark to your bag to check out.
         </p>
         <Link href="/shop" className="btn-primary">
           Browse the collection
@@ -201,10 +201,6 @@ export default function CheckoutPage() {
       setPaymentError('Some items in your bag have sold out. Remove them to continue.');
       return;
     }
-    if (payOption === 'COD' && !codAvailable) {
-      setPaymentError('Cash on Delivery is not available for this order.');
-      return;
-    }
 
     setIsProcessing(true);
     setPaymentError(null);
@@ -215,7 +211,7 @@ export default function CheckoutPage() {
       items: cart.map((item) => ({ productId: item.product.id, size: String(item.selectedSize), quantity: item.quantity })),
       promoCode: promoCode || undefined,
       shippingMethod,
-      paymentMethod: payOption === 'COD' ? ('COD' as const) : ('online' as const)
+      paymentMethod: 'online' as const
     };
     const checkoutKey = JSON.stringify(input);
 
@@ -223,7 +219,7 @@ export default function CheckoutPage() {
     let gw: GatewayOrderResponse | undefined;
     try {
       const pending = pendingOrderRef.current;
-      if (pending?.checkoutKey === checkoutKey && payOption !== 'COD') {
+      if (pending?.checkoutKey === checkoutKey) {
         ({ order, gateway: gw } = await retryOrderPayment(pending.order.id));
       } else {
         ({ order, gateway: gw } = await placeServerOrder(input));
@@ -243,7 +239,9 @@ export default function CheckoutPage() {
 
     try {
       const result: GatewaySuccess =
-        gw.mode === 'razorpay' && gw.keyId
+        gw.mode === 'cashfree' && gw.paymentSessionId
+          ? await openCashfreeCheckout({ paymentSessionId: gw.paymentSessionId, env: gw.cashfreeEnv ?? 'sandbox' })
+          : gw.mode === 'razorpay' && gw.keyId
           ? await openRazorpayCheckout({
               keyId: gw.keyId,
               gatewayOrderId: gw.gatewayOrderId,
@@ -256,7 +254,7 @@ export default function CheckoutPage() {
       const verified = await verifyGatewayPayment({
         orderId: order.id,
         gatewayOrderId: gw.gatewayOrderId,
-        paymentId: result.paymentId,
+        paymentId: result.paymentId || undefined,
         signature: result.signature,
         mockOutcome: gw.mode === 'mock' ? 'success' : undefined,
         mockMethod: gw.mode === 'mock' ? result.method : undefined
@@ -319,7 +317,7 @@ export default function CheckoutPage() {
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: '#1f7a4d', fontWeight: 600 }}>
             <Lock size={14} />
-            <span>Secure checkout · Payments by Razorpay</span>
+            <span>Secure checkout · Encrypted payments</span>
           </div>
         </div>
 
@@ -398,7 +396,7 @@ export default function CheckoutPage() {
 
                   {pinInfo?.serviceable && (
                     <p style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: '#1f7a4d' }}>
-                      <MapPin size={14} /> Delivers to {pincode} · {pinInfo.cod ? 'Cash on Delivery available' : 'Prepaid only'}
+                      <MapPin size={14} /> Delivers to {pincode}
                     </p>
                   )}
 
@@ -426,11 +424,6 @@ export default function CheckoutPage() {
                         <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{formatPrice(EXPRESS_SHIPPING_FEE)}</span>
                       </label>
                     </div>
-                    {hasStitching && (
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.6rem' }}>
-                        Includes 5 days for made-to-measure tailoring.
-                      </p>
-                    )}
                   </div>
 
                   <button type="button" className="btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => goToStep(3)}>
@@ -445,29 +438,17 @@ export default function CheckoutPage() {
               {stepHeader(3, 'Payment')}
               {step === 3 && (
                 <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <label style={optionStyle(payOption === 'online')}>
+                  <label style={optionStyle(true)}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <input type="radio" name="payment" checked={payOption === 'online'} onChange={() => setPayOption('online')} style={{ accentColor: 'var(--text-primary)' }} />
+                      <input type="radio" name="payment" checked readOnly style={{ accentColor: 'var(--text-primary)' }} />
                       <span>
                         <span style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem' }}>Pay Online</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>UPI, Cards, Netbanking & Wallets via Razorpay</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>UPI, Cards, Netbanking & Wallets</span>
                       </span>
                     </span>
                     <CreditCard size={18} color="var(--text-secondary)" />
                   </label>
 
-                  <label style={optionStyle(payOption === 'COD', !codAvailable)}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <input type="radio" name="payment" disabled={!codAvailable} checked={payOption === 'COD'} onChange={() => setPayOption('COD')} style={{ accentColor: 'var(--text-primary)' }} />
-                      <span>
-                        <span style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem' }}>Cash on Delivery</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {codAvailable ? 'Pay in cash or UPI when your order arrives' : grandTotal > COD_LIMIT ? `Available on orders up to ${formatPrice(COD_LIMIT)}` : 'Not available for this pincode'}
-                        </span>
-                      </span>
-                    </span>
-                    <Banknote size={18} color="var(--text-secondary)" />
-                  </label>
 
                   {paymentError && (
                     <div role="alert" style={{ display: 'flex', gap: '0.6rem', padding: '0.85rem 1rem', borderRadius: '6px', backgroundColor: '#FDF1EF', border: '1px solid #F2C9C2', fontSize: '0.82rem', color: '#8a2a1d' }}>
@@ -485,9 +466,7 @@ export default function CheckoutPage() {
                   >
                     {isProcessing
                       ? 'Processing…'
-                      : payOption === 'COD'
-                        ? `Place Order · ${formatPrice(grandTotal)}`
-                        : `${paymentError ? 'Retry Payment' : 'Pay'} ${formatPrice(grandTotal)}`}
+                      : `${paymentError ? 'Retry Payment' : 'Pay'} ${formatPrice(grandTotal)}`}
                   </button>
                 </div>
               )}
@@ -505,7 +484,7 @@ export default function CheckoutPage() {
                   <div style={{ flex: 1 }}>
                     <p style={{ fontFamily: 'var(--font-serif)', fontSize: '0.95rem', fontWeight: 600, lineHeight: 1.2 }}>{item.product.title}</p>
                     <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      Size: {item.selectedSize} {item.selectedStitching ? `• ${item.selectedStitching.name}` : ''}
+                      {item.product.color ? `${item.product.color} · ` : ''}{item.selectedSize}
                     </p>
                     {unavailableItems.includes(item) ? (
                       <p style={{ fontSize: '0.75rem', fontWeight: 600, marginTop: '0.2rem', color: '#B3261E' }}>
@@ -526,7 +505,7 @@ export default function CheckoutPage() {
             </div>
 
             {promoCode ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', padding: '0.6rem 0.75rem', border: '1px dashed #1B4435', borderRadius: '4px', backgroundColor: '#F0F7F2', fontSize: '0.8rem', color: '#1B4435' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', padding: '0.6rem 0.75rem', border: '1px dashed #111111', borderRadius: '4px', backgroundColor: '#FFF4C2', fontSize: '0.8rem', color: '#111111' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Tag size={14} /> <strong>{promoCode}</strong> applied</span>
                 <button type="button" onClick={removePromoCode} style={{ fontSize: '0.75rem', textDecoration: 'underline', color: 'var(--text-secondary)' }}>Remove</button>
               </div>

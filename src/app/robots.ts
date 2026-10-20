@@ -5,8 +5,10 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/admin'],
+      // Private, transactional and per-visitor pages stay out of search
+      disallow: ['/admin', '/api/', '/checkout', '/order-success', '/wishlist'],
     },
-    sitemap: 'https://www.hevaelegance.com/sitemap.xml',
+    sitemap: 'https://www.chikchik.in/sitemap.xml',
+    host: 'https://www.chikchik.in',
   };
 }

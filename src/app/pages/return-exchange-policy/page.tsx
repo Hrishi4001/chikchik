@@ -3,8 +3,8 @@ import PolicyPage from '@/components/legal/PolicyPage';
 import { LEGAL } from '@/lib/legal';
 
 export const metadata: Metadata = {
-  title: 'Return & Exchange Policy | Heva Elegance',
-  description: `Easy ${LEGAL.returnWindowDays}-day exchange and return policy for Heva Elegance sarees and kurta sets. Eligibility, process and refund timelines.`,
+  title: 'Return & Exchange Policy | Chikchik',
+  description: `${LEGAL.returnWindowDays}-day return and replacement policy for Chikchik designer lighters. Eligibility, process and refund timelines.`,
   alternates: { canonical: '/pages/return-exchange-policy' },
 };
 
@@ -14,7 +14,7 @@ export default function ReturnExchangePolicyPage() {
     <PolicyPage
       title="Return & Exchange Policy"
       currentHref="/pages/return-exchange-policy"
-      intro={<p>If you are unhappy with your purchase, we are here to find you an easy solution. Heva Elegance products can be returned or exchanged within {days} days of delivery, subject to the conditions below.</p>}
+      intro={<p>If you are unhappy with your purchase, we are here to find you an easy solution. Unused Chikchik lighters can be returned or exchanged within {days} days of delivery, subject to the conditions below. Because our products are for personal care, opened products cannot be returned unless they arrived damaged, defective or incorrect.</p>}
       sections={[
         {
           heading: 'Eligibility',
@@ -22,8 +22,8 @@ export default function ReturnExchangePolicyPage() {
             <>
               <p>A return or exchange request must be raised within <strong>{days} days of delivery</strong>. The product must be:</p>
               <ul>
-                <li>Unused, unwashed, unaltered and free of perfume, makeup or stains.</li>
-                <li>Returned with all original tags, labels, packaging, blouse piece and accessories intact.</li>
+                <li>Unused and never filled or lit, with all original parts intact.</li>
+                <li>Returned in its original packaging with all labels intact.</li>
                 <li>Accompanied by the invoice or order number.</li>
               </ul>
             </>
@@ -33,16 +33,16 @@ export default function ReturnExchangePolicyPage() {
           heading: 'Non-Returnable Items',
           body: (
             <ul>
-              <li>Made-to-measure, custom-fit or altered garments (including stitched blouses and fall/pico work done on request).</li>
+              <li>Lighters that have been filled, lit or used, for safety reasons.</li>
               <li>Products purchased during clearance or final sale, where marked as non-returnable.</li>
-              <li>Gift cards and accessories such as jewellery, for hygiene reasons.</li>
-              <li>Items that show signs of use or are returned without original tags.</li>
+              <li>Gift cards and combo packs that have been split.</li>
+              <li>Items returned without their original seal or packaging.</li>
             </ul>
           ),
         },
         {
           heading: 'Exchanges',
-          body: <p>You may exchange a product for another size, or for another product of the same or higher value. If the new product is of higher value, you pay the difference. Exchanges are subject to stock availability; if the requested item is unavailable, we will issue store credit or a refund.</p>,
+          body: <p>You may exchange an unused product for another product of the same or higher value. If the new product is of higher value, you pay the difference. Exchanges are subject to stock availability; if the requested item is unavailable, we will issue store credit or a refund.</p>,
         },
         {
           heading: 'How to Request a Return or Exchange',
@@ -63,8 +63,7 @@ export default function ReturnExchangePolicyPage() {
           body: (
             <ul>
               <li>Approved refunds for prepaid orders are made to the original payment method within 5–7 business days of the quality check. Your bank may take additional time to reflect the amount.</li>
-              <li>For Cash on Delivery orders, refunds are made by bank transfer/UPI to the account details you provide.</li>
-              <li>Original shipping charges and COD fees, if any, are non-refundable unless the product was damaged, defective or incorrect.</li>
+              <li>Original shipping charges are non-refundable unless the product was damaged, defective or incorrect.</li>
               <li>You may choose store credit instead of a refund; store credit is valid for 12 months.</li>
             </ul>
           ),
@@ -74,12 +73,12 @@ export default function ReturnExchangePolicyPage() {
           body: <p>If you receive a damaged, defective or incorrect product, notify us within 48 hours of delivery with photos and, ideally, an unboxing video. We will arrange a free replacement or a full refund including shipping charges.</p>,
         },
         {
-          heading: 'Handcrafted Nature of Our Products',
-          body: <p>Many of our sarees and kurtas are handwoven, hand-printed or hand-embroidered. Slight irregularities in weave, print, colour or motif are a hallmark of handcraft and are not considered defects. Colours may also vary slightly due to photography and screen settings.</p>,
+          heading: 'Finishes & Variations',
+          body: <p>Printed metal finishes can show light wear with everyday use, and printed designs may vary slightly between production runs. These are not considered defects. Colours may also vary slightly due to photography and screen settings.</p>,
         },
         {
           heading: 'Order Cancellations',
-          body: <p>You may cancel an order before it is dispatched by contacting us; prepaid amounts will be refunded in full. Made-to-measure orders cannot be cancelled once tailoring has begun. Orders already dispatched cannot be cancelled but may be returned under this policy.</p>,
+          body: <p>You may cancel an order before it is dispatched by contacting us; prepaid amounts will be refunded in full. Orders already dispatched cannot be cancelled but may be returned under this policy.</p>,
         },
       ]}
     />

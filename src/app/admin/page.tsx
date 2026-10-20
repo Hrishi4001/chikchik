@@ -33,7 +33,7 @@ export default function AdminDashboard() {
   const aov = sales.length ? revenue / sales.length : 0;
   const prevAov = prevSales.length ? prevRevenue / prevSales.length : 0;
 
-  const toFulfil = orders.filter((o) => isSale(o) && ['Processing', 'Tailoring', 'Quality Check'].includes(o.fulfillmentStatus));
+  const toFulfil = orders.filter((o) => isSale(o) && ['Processing', 'Packing', 'Quality Check'].includes(o.fulfillmentStatus));
   const failedPayments = current.filter((o) => o.paymentStatus === 'Failed').length;
   const lowStock = products.filter((p) => p.stockCount <= LOW_STOCK_THRESHOLD).sort((a, b) => a.stockCount - b.stockCount);
   const hasSample = orders.some((o) => o.isSample);

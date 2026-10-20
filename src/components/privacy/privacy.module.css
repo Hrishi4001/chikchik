@@ -79,9 +79,9 @@
 }
 
 .btnPrimary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
+  background: var(--color-accent);
+  border-color: #151515;
+  color: var(--color-on-accent);
 }
 
 .btn:focus-visible,

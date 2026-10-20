@@ -295,7 +295,7 @@ export default function AdminOrderDetailPage() {
               <dt>Method</dt>
               <dd>{order.paymentMethod}</dd>
               <dt>Gateway</dt>
-              <dd>{order.payment?.provider === 'cod' ? 'Cash on delivery' : order.payment?.provider === 'mock' ? 'Razorpay (test mode)' : 'Razorpay'}</dd>
+              <dd>{order.payment?.provider === 'cod' ? 'Cash on delivery' : order.payment?.provider === 'mock' ? 'Test mode' : order.payment?.provider === 'cashfree' ? 'Cashfree' : 'Razorpay'}</dd>
               {order.payment?.gatewayOrderId && (
                 <>
                   <dt>Gateway order</dt>

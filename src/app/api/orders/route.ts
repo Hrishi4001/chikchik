@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    return Response.json(await placeOrder(body));
+    return Response.json(await placeOrder(body, new URL(request.url).origin));
   } catch (err) {
     if (err instanceof OrderError) return Response.json({ error: err.message }, { status: err.status });
     console.error('[orders] place failed', err);

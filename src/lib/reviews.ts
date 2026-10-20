@@ -11,7 +11,7 @@ export type StoreReview = Review & {
   productTitle?: string;
 };
 
-const CHANGE_EVENT = 'svayam-reviews-change';
+const CHANGE_EVENT = 'chikchik-reviews-change';
 
 let cache: StoreReview[] | null = null;
 let inflight: Promise<StoreReview[]> | null = null;

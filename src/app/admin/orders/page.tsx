@@ -10,7 +10,7 @@ import { downloadCsv, fulfillmentTone, inr, itemCount, orderTime, paymentLabel, 
 import type { FulfillmentStatus, PaymentStatus } from '@/lib/types';
 import styles from '../admin.module.css';
 
-const FULFILLMENT: (FulfillmentStatus | 'All')[] = ['All', 'Processing', 'Tailoring', 'Quality Check', 'Dispatched', 'Delivered', 'Cancelled'];
+const FULFILLMENT: (FulfillmentStatus | 'All')[] = ['All', 'Processing', 'Packing', 'Quality Check', 'Dispatched', 'Delivered', 'Cancelled'];
 const PAYMENT: (PaymentStatus | 'All')[] = ['All', 'Paid', 'Pending', 'Failed', 'Refunded'];
 
 export default function AdminOrdersPage() {

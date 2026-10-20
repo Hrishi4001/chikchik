@@ -1,6 +1,6 @@
 /** Cookie consent shared by the banner, tracker and API routes. Bump the version when the cookie policy changes materially. */
-export const CONSENT_COOKIE = 'he_consent';
-export const VISITOR_COOKIE = 'he_vid';
+export const CONSENT_COOKIE = 'rv_consent';
+export const VISITOR_COOKIE = 'rv_vid';
 export const CONSENT_VERSION = '2026-10';
 export const CONSENT_MAX_AGE = 60 * 60 * 24 * 180; // re-ask every 6 months
 

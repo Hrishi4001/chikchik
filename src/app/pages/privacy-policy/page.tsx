@@ -3,8 +3,8 @@ import PolicyPage from '@/components/legal/PolicyPage';
 import { LEGAL } from '@/lib/legal';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Heva Elegance',
-  description: 'How Heva Elegance collects, uses, stores and protects your personal information.',
+  title: 'Privacy Policy | Chikchik',
+  description: 'How Chikchik collects, uses, stores and protects your personal information.',
   alternates: { canonical: '/pages/privacy-policy' },
 };
 
@@ -23,7 +23,7 @@ export default function PrivacyPolicyPage() {
           heading: 'Information We Collect',
           body: (
             <ul>
-              <li><strong>Information you provide:</strong> name, email address, phone number, shipping and billing address, measurements for custom-fit orders, and messages you send us.</li>
+              <li><strong>Information you provide:</strong> name, email address, phone number, shipping and billing address, and messages you send us.</li>
               <li><strong>Order information:</strong> products purchased, order value, payment method and transaction status. We do not store your full card, UPI PIN or net-banking credentials; payments are processed by our PCI-DSS compliant payment partner (Razorpay).</li>
               <li><strong>Marketing sign-ups:</strong> your mobile number (and name, if given) when you join our WhatsApp/SMS updates, together with a record of when and how you gave consent.</li>
               <li><strong>Automatically collected data:</strong> approximate location (country, state, city), device and browser type, pages visited, and the website that referred you. Your IP address is used only to derive location and an anonymous daily visit code; it is not stored. See our <a href="/pages/cookie-policy">Cookie Policy</a>.</li>

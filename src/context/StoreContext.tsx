@@ -60,25 +60,18 @@ interface StoreContextType {
   clearSampleOrders: () => void;
   
   // Admin Product Catalog
-  addProduct: (product: Omit<Product, 'id' | 'slug'>) => void;
-  updateProduct: (id: string, updates: Partial<Product>, options?: { silent?: boolean }) => void;
-  deleteProduct: (id: string) => void;
+  productsLoaded: boolean;
+  addProduct: (product: Omit<Product, 'id' | 'slug'>) => Promise<boolean>;
+  updateProduct: (id: string, updates: Partial<Product>, options?: { silent?: boolean }) => Promise<boolean>;
+  deleteProduct: (id: string) => Promise<boolean>;
 
   // Logistics / Pin Code
-  checkPincode: (pincode: string) => { serviceable: boolean; city?: string; state?: string; days?: number; cod?: boolean };
+  checkPincode: (pincode: string) => { serviceable: boolean; city?: string; state?: string; days?: number };
 
   // Toasts
   toasts: Toast[];
   showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
-
-// Admin edits are kept in localStorage; they are dropped whenever the shipped catalog changes so shoppers never see stale data
-const CATALOG_VERSION = (() => {
-  const json = JSON.stringify(INITIAL_PRODUCTS);
-  let h = 0;
-  for (let i = 0; i < json.length; i++) h = (h * 31 + json.charCodeAt(i)) | 0;
-  return String(h);
-})();
 
 const isPurchasable = (p?: Product) => !!p && p.inStock && p.stockCount > 0;
 
@@ -95,24 +88,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [productsLoaded, setProductsLoaded] = useState(false);
+
+  // Catalog lives in the server database; INITIAL_PRODUCTS is only the first-paint fallback
+  useEffect(() => {
+    fetch('/api/products', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d: { products: Product[] }) => setProducts(d.products))
+      .catch(() => {})
+      .finally(() => setProductsLoaded(true));
+  }, []);
 
 
   // LocalStorage sync
   useEffect(() => {
     try {
-      const savedWishlist = localStorage.getItem('svayam_wishlist');
+      const savedWishlist = localStorage.getItem('chikchik_wishlist');
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
 
-      const savedCart = localStorage.getItem('svayam_cart');
+      const savedCart = localStorage.getItem('chikchik_cart');
       if (savedCart) setCart(JSON.parse(savedCart));
 
-      const savedOrders = localStorage.getItem('svayam_orders');
+      const savedOrders = localStorage.getItem('chikchik_orders');
       if (savedOrders) setOrders(JSON.parse(savedOrders));
 
-      const savedProducts = localStorage.getItem('svayam_products');
-      if (savedProducts && localStorage.getItem('svayam_catalog_version') === CATALOG_VERSION) setProducts(JSON.parse(savedProducts));
+      localStorage.removeItem('chikchik_products');
+      localStorage.removeItem('chikchik_catalog_version');
 
-      const savedPromo = localStorage.getItem('svayam_promo');
+      const savedPromo = localStorage.getItem('chikchik_promo');
       if (savedPromo && PROMO_CODES[savedPromo]) setPromoCode(savedPromo);
     } catch {
       // ignore SSR/hydration storage errors
@@ -124,23 +127,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem('svayam_orders', JSON.stringify(orders));
+      localStorage.setItem('chikchik_orders', JSON.stringify(orders));
     } catch {}
   }, [orders, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem('svayam_products', JSON.stringify(products));
-      localStorage.setItem('svayam_catalog_version', CATALOG_VERSION);
-    } catch {}
-  }, [products, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      if (promoCode) localStorage.setItem('svayam_promo', promoCode);
-      else localStorage.removeItem('svayam_promo');
+      if (promoCode) localStorage.setItem('chikchik_promo', promoCode);
+      else localStorage.removeItem('chikchik_promo');
     } catch {}
   }, [promoCode, hydrated]);
 
@@ -155,7 +150,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const saveCartToStorage = (newCart: CartItem[]) => {
     setCart(newCart);
     try {
-      localStorage.setItem('svayam_cart', JSON.stringify(newCart));
+      localStorage.setItem('chikchik_cart', JSON.stringify(newCart));
     } catch {}
   };
 
@@ -258,7 +253,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     setWishlist(updated);
     try {
-      localStorage.setItem('svayam_wishlist', JSON.stringify(updated));
+      localStorage.setItem('chikchik_wishlist', JSON.stringify(updated));
     } catch {}
   };
 
@@ -333,28 +328,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     showToast('Sample orders removed', 'info');
   };
 
-  // Admin Catalog Handlers
-  const addProduct = (newProdData: Omit<Product, 'id' | 'slug'>) => {
-    const slug = newProdData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const newProduct: Product = {
-      ...newProdData,
-      id: `prod-${Date.now()}`,
-      slug
-    };
-    setProducts((prev) => [newProduct, ...prev]);
-    showToast(`Product "${newProduct.title}" published to catalog`, 'success');
+  // Admin Catalog Handlers: persisted to the server database
+  const saveProduct = async (url: string, method: string, body?: unknown) => {
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).catch(() => null);
+    const data = (await res?.json().catch(() => null)) as { product?: Product; error?: string } | null;
+    if (!res?.ok) showToast(data?.error || 'Change not saved to the server — please retry', 'error');
+    return res?.ok ? data : null;
   };
 
-  const updateProduct = (id: string, updates: Partial<Product>, options?: { silent?: boolean }) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-    );
+  const addProduct = async (newProdData: Omit<Product, 'id' | 'slug'>) => {
+    const data = await saveProduct('/api/admin/products', 'POST', newProdData);
+    if (!data?.product) return false;
+    setProducts((prev) => [data.product!, ...prev]);
+    showToast(`Product "${data.product.title}" published to catalog`, 'success');
+    return true;
+  };
+
+  const updateProduct = async (id: string, updates: Partial<Product>, options?: { silent?: boolean }) => {
+    const data = await saveProduct(`/api/admin/products/${id}`, 'PATCH', updates);
+    if (!data?.product) return false;
+    setProducts((prev) => prev.map((p) => (p.id === id ? data.product! : p)));
     if (!options?.silent) showToast('Product specifications updated', 'success');
+    return true;
   };
 
-  const deleteProduct = (id: string) => {
+  const deleteProduct = async (id: string) => {
+    if (!(await saveProduct(`/api/admin/products/${id}`, 'DELETE'))) return false;
     setProducts((prev) => prev.filter((p) => p.id !== id));
     showToast('Product archived from catalog', 'info');
+    return true;
   };
 
   // Pin code serviceability
@@ -366,8 +368,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         serviceable: true,
         city: match.city,
         state: match.state,
-        days: match.days,
-        cod: match.cod
+        days: match.days
       };
     }
     // standard fallback for 6-digit Indian PIN codes
@@ -377,8 +378,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // Unlisted PINs ship via the national courier network; no city to show
         city: '',
         state: '',
-        days: 4,
-        cod: true
+        days: 4
       };
     }
     return { serviceable: false };
@@ -388,6 +388,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     <StoreContext.Provider
       value={{
         products,
+        productsLoaded,
         formatPrice,
         cart,
         isCartOpen,

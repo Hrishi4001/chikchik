@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { X, Trash2, ArrowRight, ShieldCheck, Sparkles, Plus, Minus, Tag, Truck, BadgePercent, Check } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
+import ExpressCheckout from '@/components/checkout/ExpressCheckout';
 import { CART_MILESTONES, STANDARD_SHIPPING_FEE, getCartRewards } from '@/lib/cartRewards';
 
 const MILESTONE_ICONS = [Truck, BadgePercent];
@@ -147,19 +148,19 @@ export default function CartDrawer() {
         <div
           style={{
             padding: '0.9rem 1.75rem 1.1rem',
-            backgroundColor: rewards.next ? '#F9F6F0' : '#F0F7F2',
+            backgroundColor: rewards.next ? '#F9F6F0' : '#FFF4C2',
             borderBottom: '1px solid var(--border-subtle)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
-            <Sparkles size={14} color={rewards.unlocked ? '#1B4435' : '#580F00'} />
-            <span style={{ fontSize: '0.78rem', fontWeight: 500, color: rewards.unlocked ? '#1B4435' : 'var(--text-primary)' }}>
+            <Sparkles size={14} color="#111111" />
+            <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-primary)' }}>
               {rewards.next ? (
                 <>
                   Add <strong>{formatPrice(rewards.remainingForNext)}</strong> more to unlock <strong>{rewards.next.perk}</strong>
                 </>
               ) : (
-                <>All rewards unlocked! <strong>₹200 off &amp; free shipping</strong></>
+                <>All rewards unlocked! <strong>₹100 off &amp; free shipping</strong></>
               )}
             </span>
           </div>
@@ -169,7 +170,7 @@ export default function CartDrawer() {
                 height: '100%',
                 width: `${progress}%`,
                 borderRadius: '2px',
-                backgroundColor: rewards.next ? 'var(--color-earth-brown)' : '#1B4435',
+                backgroundColor: rewards.next ? '#111111' : 'var(--color-accent)',
                 transition: 'width 0.4s ease'
               }}
             />
@@ -198,15 +199,15 @@ export default function CartDrawer() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: reached ? '#1B4435' : '#FFFFFF',
-                      border: `1px solid ${reached ? '#1B4435' : 'var(--border-medium)'}`,
-                      color: reached ? '#FFFFFF' : 'var(--text-muted)',
+                      backgroundColor: reached ? 'var(--color-accent)' : '#FFFFFF',
+                      border: `1px solid ${reached ? '#111111' : 'var(--border-medium)'}`,
+                      color: reached ? '#111111' : 'var(--text-muted)',
                       transition: 'all 0.3s ease'
                     }}
                   >
                     <Icon size={12} />
                   </span>
-                  <span style={{ fontSize: '0.62rem', marginTop: '0.25rem', fontWeight: 600, color: reached ? '#1B4435' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.62rem', marginTop: '0.25rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                     {m.label}
                   </span>
                   <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{formatPrice(m.threshold)}</span>
@@ -254,10 +255,10 @@ export default function CartDrawer() {
                 <Sparkles size={24} color="var(--accent-gold)" />
               </div>
               <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', marginBottom: '0.5rem' }}>
-                Your bag is empty
+                Your bag is as empty as a summer-vacation diary
               </h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', maxWidth: '280px' }}>
-                Discover pure handloom silks, tissue organzas, and bridal weaves in our new collection.
+                Add a little 90s spark: jet-flame and flip-top lighters with vintage matchbox art.
               </p>
               <button
                 onClick={() => {
@@ -330,7 +331,7 @@ export default function CartDrawer() {
                   </div>
 
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    {item.product.color && <>Colour: <strong>{item.product.color}</strong> · </>}Size: <strong>{item.selectedSize}</strong>
+                    {item.product.color && <>Design: <strong>{item.product.color}</strong> · </>}<strong>{item.selectedSize}</strong>
                   </p>
 
                   {unavailableItems.includes(item) && (
@@ -394,7 +395,7 @@ export default function CartDrawer() {
           {cart.length > 0 && recommendations.length > 0 && (
             <div>
               <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-                Complete the Look
+                Add to Your Collection
               </p>
               {rewards.next && (
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
@@ -454,7 +455,7 @@ export default function CartDrawer() {
           >
             {/* Promo Code Form */}
             {promoCode ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem', padding: '0.6rem 0.75rem', border: '1px dashed #1B4435', borderRadius: '4px', backgroundColor: '#F0F7F2', fontSize: '0.8rem', color: '#1B4435' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem', padding: '0.6rem 0.75rem', border: '1px dashed #111111', borderRadius: '4px', backgroundColor: '#FFF4C2', fontSize: '0.8rem', color: '#111111' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <Tag size={14} /> <strong>{promoCode}</strong> applied · you save {formatPrice(promoDiscount)}
                 </span>
@@ -544,15 +545,20 @@ export default function CartDrawer() {
                 Remove sold-out {unavailableItems.length === 1 ? 'item' : 'items'} to check out.
               </p>
             )}
-            <button
-              onClick={proceedToCheckout}
+            <ExpressCheckout
               disabled={unavailableItems.length > 0}
-              className="btn-primary"
-              style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', opacity: unavailableItems.length > 0 ? 0.5 : 1, cursor: unavailableItems.length > 0 ? 'not-allowed' : 'pointer' }}
-            >
-              <span>Proceed to Checkout</span>
-              <ArrowRight size={16} />
-            </button>
+              fallback={
+                <button
+                  onClick={proceedToCheckout}
+                  disabled={unavailableItems.length > 0}
+                  className="btn-primary"
+                  style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', opacity: unavailableItems.length > 0 ? 0.5 : 1, cursor: unavailableItems.length > 0 ? 'not-allowed' : 'pointer' }}
+                >
+                  <span>Proceed to Checkout</span>
+                  <ArrowRight size={16} />
+                </button>
+              }
+            />
 
             <div
               style={{
@@ -565,7 +571,7 @@ export default function CartDrawer() {
                 color: 'var(--text-muted)'
               }}
             >
-              <ShieldCheck size={13} color="#1B4435" />
+              <ShieldCheck size={13} color="#1F7A4D" />
               <span>Insured shipping · 7-day easy returns</span>
             </div>
           </div>

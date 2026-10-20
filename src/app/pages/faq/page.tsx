@@ -5,8 +5,8 @@ import { FAQ_GROUPS } from '@/lib/faq';
 import FaqGroups from '@/components/faq/FaqGroups';
 
 export const metadata: Metadata = {
-  title: 'FAQ | Heva Elegance',
-  description: 'Answers to common questions about orders, shipping, payments, sizing, returns and exchanges at Heva Elegance.',
+  title: 'Designer Lighter FAQ | Chikchik',
+  description: 'Chikchik designer lighter FAQ: materials, refills, safety, gifting, shipping across India, payments and returns.',
   alternates: { canonical: '/pages/faq' },
 };
 

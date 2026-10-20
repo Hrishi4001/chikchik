@@ -1,17 +1,15 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import sharp from 'sharp';
 import { SESSION_COOKIE, verifySessionToken } from '@/lib/auth';
+import { kvSetBytes } from '@/lib/kv.server';
 
 export const runtime = 'nodejs';
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const MAX_WIDTH = 1600;
 const MAX_HEIGHT = 2133; // 3:4 portrait, matching product cards
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'images', 'products');
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'image';
@@ -28,7 +26,6 @@ export async function POST(request: Request) {
   if (!files.length) return NextResponse.json({ error: 'No files received' }, { status: 400 });
 
   const prefix = slugify(String(form?.get('name') || ''));
-  await mkdir(UPLOAD_DIR, { recursive: true });
 
   const urls: string[] = [];
   const errors: string[] = [];
@@ -43,9 +40,9 @@ export async function POST(request: Request) {
         .resize({ width: MAX_WIDTH, height: MAX_HEIGHT, fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 82 })
         .toBuffer();
-      const name = `${prefix !== 'image' ? prefix : slugify(file.name)}-${Date.now().toString(36)}${randomBytes(3).toString('hex')}.webp`;
-      await writeFile(path.join(UPLOAD_DIR, name), output);
-      urls.push(`/images/products/${name}`);
+      const key = `${prefix !== 'image' ? prefix : slugify(file.name)}-${Date.now().toString(36)}${randomBytes(3).toString('hex')}`;
+      await kvSetBytes('images', key, output);
+      urls.push(`/api/images/${key}.webp`);
     } catch {
       errors.push(`${file.name}: not a supported image`);
     }
