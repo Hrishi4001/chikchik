@@ -53,7 +53,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           aspectRatio: '3 / 4',
           overflow: 'hidden',
           borderRadius: 0,
-          border: '1px solid #000000',
+          border: '0.4px solid #000000',
           backgroundColor: imageBg ? imageBg.replace('rgb(', 'rgba(').replace(')', ', 0.15)') : 'transparent',
           transition: 'background-color 0.3s ease'
         }}

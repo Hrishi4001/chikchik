@@ -1,4 +1,4 @@
-import { EXPRESS_SHIPPING_FEE, STANDARD_SHIPPING_FEE } from './cartRewards';
+import { CART_MILESTONES, EXPRESS_SHIPPING_FEE, STANDARD_SHIPPING_FEE } from './cartRewards';
 
 /** Business details referenced across the policy pages. Fill in the TODO fields before launch. */
 export const LEGAL = {
@@ -10,7 +10,8 @@ export const LEGAL = {
   jurisdiction: 'India', // TODO: city for courts' jurisdiction, e.g. "Hyderabad, Telangana"
   grievanceOfficer: 'Customer Care Team', // TODO: name of Grievance Officer (IT Rules 2021 / DPDP Act 2023)
   lastUpdated: '7 October 2026',
-  freeShippingThreshold: 499,
+  // Same threshold the cart and server use to waive shipping
+  freeShippingThreshold: CART_MILESTONES.find((m) => m.freeShipping)!.threshold,
   standardShippingFee: STANDARD_SHIPPING_FEE,
   expressShippingFee: EXPRESS_SHIPPING_FEE,
   returnWindowDays: 7,

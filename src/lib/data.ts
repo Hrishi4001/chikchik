@@ -15,7 +15,7 @@ export const INITIAL_ORDERS: Order[] = [];
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
-    "price": 1299,
+    "price": 200,
     "category": "rogg",
     "categoryLabel": "Rogg",
     "origin": "India",
@@ -43,9 +43,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     "color": "Nazar Red & Black",
     "colorHex": "#D7322B",
     "images": [
-      "/images/products/anti-nazar-jet-lighter-1.jpg",
-      "/images/products/anti-nazar-jet-lighter-2.jpg",
-      "/images/products/anti-nazar-jet-lighter-3.jpg"
+      "/images/products/anti-nazar-jet-lighter-1.webp",
+      "/images/products/anti-nazar-jet-lighter-2.webp",
+      "/images/products/anti-nazar-jet-lighter-3.webp"
     ],
     "description": "Remember the nimbu-mirchi on every shop door and the scary face painted on the back of every truck? The Anti Nazar lighter wears that \"double protection\" with pride: a wide-eyed blue face on a bold red label, framed like a matchbox you would have found at the corner kirana in the 90s.",
     "craftsmanshipDetails": [
@@ -58,7 +58,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "isNewArrival": false
   },
   {
-    "price": 1299,
+    "price": 200,
     "category": "90s-nostalgia",
     "categoryLabel": "90's Nostalgia",
     "origin": "India",
@@ -86,9 +86,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     "color": "Sunset Orange",
     "colorHex": "#F08A24",
     "images": [
-      "/images/products/husn-ki-teeli-jet-lighter-1.jpg",
-      "/images/products/husn-ki-teeli-jet-lighter-2.jpg",
-      "/images/products/husn-ki-teeli-jet-lighter-3.jpg"
+      "/images/products/husn-ki-teeli-jet-lighter-1.webp",
+      "/images/products/husn-ki-teeli-jet-lighter-2.webp",
+      "/images/products/husn-ki-teeli-jet-lighter-3.webp"
     ],
     "description": "Straight out of a filmy poster: glossy lips holding a matchstick, a burst of orange sunrays and \"Husn ki Teeli\" in bold Devanagari. A cheeky nod to the safety-match boxes that once sat on every 90s kitchen shelf, now with a jet flame that lights first time.",
     "craftsmanshipDetails": [
@@ -101,7 +101,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "isNewArrival": true
   },
   {
-    "price": 1299,
+    "price": 200,
     "category": "rogg",
     "categoryLabel": "Rogg",
     "origin": "India",
@@ -129,9 +129,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     "color": "Matchbox Yellow",
     "colorHex": "#F2C230",
     "images": [
-      "/images/products/quality-eyes-jet-lighter-1.jpg",
-      "/images/products/quality-eyes-jet-lighter-2.jpg",
-      "/images/products/quality-eyes-jet-lighter-3.jpg"
+      "/images/products/quality-eyes-jet-lighter-1.webp",
+      "/images/products/quality-eyes-jet-lighter-2.webp",
+      "/images/products/quality-eyes-jet-lighter-3.webp"
     ],
     "description": "Two kohl-lined eyes, a \"50s price 0-15 ps.\" stamp and \"Special Quality Safety Match\" wrapped all the way around. This one is for anyone who used to collect matchbox labels and swap them at school, back when 15 paise felt like a fortune.",
     "craftsmanshipDetails": [
@@ -144,7 +144,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "isNewArrival": true
   },
   {
-    "price": 1299,
+    "price": 200,
     "category": "rogg",
     "categoryLabel": "Rogg",
     "origin": "India",
@@ -172,9 +172,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     "color": "Royal Blue & Red",
     "colorHex": "#2BA7C9",
     "images": [
-      "/images/products/king-deluxe-jet-lighter-1.jpg",
-      "/images/products/king-deluxe-jet-lighter-2.jpg",
-      "/images/products/king-deluxe-jet-lighter-3.jpg"
+      "/images/products/king-deluxe-jet-lighter-1.webp",
+      "/images/products/king-deluxe-jet-lighter-2.webp",
+      "/images/products/king-deluxe-jet-lighter-3.webp"
     ],
     "description": "A turbaned king with a curled moustache, \"Delux Quality Match\" in chunky letters and a printed price of 15 paise. The King Deluxe brings back the grand, hand-painted look of old South Indian matchbox art for a lighter that rules every table it sits on.",
     "craftsmanshipDetails": [
@@ -187,7 +187,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "isNewArrival": false
   },
   {
-    "price": 1299,
+    "price": 200,
     "category": "rogg",
     "categoryLabel": "Rogg",
     "origin": "India",
@@ -215,9 +215,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     "color": "Tiger Yellow",
     "colorHex": "#F2B630",
     "images": [
-      "/images/products/tiger-jet-lighter-1.jpg",
-      "/images/products/tiger-jet-lighter-2.jpg",
-      "/images/products/tiger-jet-lighter-3.jpg"
+      "/images/products/tiger-jet-lighter-1.webp",
+      "/images/products/tiger-jet-lighter-2.webp",
+      "/images/products/tiger-jet-lighter-3.webp"
     ],
     "description": "A roaring tiger leaping through swirling clouds under a red rising sun, styled like an old import-tea trade label. Bold, loud and a little wild, just like the stickers we used to slap on our school geometry boxes.",
     "craftsmanshipDetails": [
@@ -230,7 +230,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "isNewArrival": true
   },
   {
-    "price": 1299,
+    "price": 200,
     "category": "rogg",
     "categoryLabel": "Rogg",
     "origin": "India",
@@ -258,8 +258,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "color": "Rani Pink",
     "colorHex": "#E0338A",
     "images": [
-      "/images/products/kolhapuri-flip-top-lighter-1.jpg",
-      "/images/products/kolhapuri-flip-top-lighter-2.jpg"
+      "/images/products/kolhapuri-flip-top-lighter-1.webp",
+      "/images/products/kolhapuri-flip-top-lighter-2.webp"
     ],
     "description": "Rani pink, lotus borders and a hand-drawn Kolhapuri chappal at the centre, with \"Handcrafted with love\" and \"Made in India\" in proud bazaar lettering. It looks like the label on a wedding-season gift box from the 90s, and makes just as good a present.",
     "craftsmanshipDetails": [

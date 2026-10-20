@@ -7,7 +7,7 @@ export interface CartMilestone {
 }
 
 export const CART_MILESTONES: CartMilestone[] = [
-  { threshold: 499, label: 'Free Shipping', perk: 'free shipping', discount: 0, freeShipping: true },
+  { threshold: 600, label: 'Free Shipping', perk: 'free shipping', discount: 0, freeShipping: true },
   { threshold: 999, label: '₹100 Off', perk: '₹100 off', discount: 100, freeShipping: true }
 ];
 

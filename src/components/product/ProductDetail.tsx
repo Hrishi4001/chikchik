@@ -166,10 +166,17 @@ function ProductView({ product }: { product: Product }) {
   const galleryCount = product.images.length;
 
   // Mobile carousel only; on desktop the track is a static grid and never scrolls
+  // Image a programmatic scroll is heading to; scroll events on the way there are ignored
+  const scrollTargetRef = useRef<number | null>(null);
+  const [isGalleryPaused, setIsGalleryPaused] = useState(false);
+
   const goToImage = (idx: number) => {
     const track = galleryTrackRef.current;
     const target = track?.children[idx] as HTMLElement | undefined;
-    if (track && target) track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
+    if (track && target) {
+      scrollTargetRef.current = idx;
+      track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
+    }
     setSelectedImage(idx);
   };
 
@@ -178,6 +185,10 @@ function ProductView({ product }: { product: Product }) {
     const first = track?.children[0] as HTMLElement | undefined;
     if (!track || !first) return;
     const idx = Math.min(galleryCount - 1, Math.round(track.scrollLeft / (first.offsetWidth + 8)));
+    if (scrollTargetRef.current !== null) {
+      if (idx !== scrollTargetRef.current) return;
+      scrollTargetRef.current = null;
+    }
     if (idx !== selectedImage) setSelectedImage(idx);
   };
 
@@ -215,11 +226,14 @@ function ProductView({ product }: { product: Product }) {
       {/* Main Product Hero: image stack left, sticky details right (stacked on mobile) */}
       <div className="pdp-layout">
         {/* Gallery: one large image then a two-up grid on desktop; swipeable carousel on mobile */}
-        <div className="pdp-gallery">
+        <div className={`pdp-gallery ${isGalleryPaused || isLightboxOpen ? 'is-paused' : ''}`}>
           <div
             ref={galleryTrackRef}
             className={`pdp-gallery-track ${galleryCount % 2 === 0 ? 'is-even' : ''}`}
             onScroll={handleGalleryScroll}
+            onTouchStart={() => setIsGalleryPaused(true)}
+            onTouchEnd={() => setIsGalleryPaused(false)}
+            onTouchCancel={() => setIsGalleryPaused(false)}
           >
             {product.images.map((img, idx) => (
               <button key={idx} type="button" className="pdp-gallery-item" onClick={() => openLightbox(idx)} aria-label={`Zoom image ${idx + 1}`}>
@@ -234,14 +248,26 @@ function ProductView({ product }: { product: Product }) {
           </div>
 
           {galleryCount > 1 && (
-            <div className="pdp-gallery-counter">
-              <button type="button" onClick={() => goToImage(Math.max(0, selectedImage - 1))} disabled={selectedImage === 0} aria-label="Previous image">
-                <ChevronLeft size={16} />
-              </button>
-              <span>{selectedImage + 1}/{galleryCount}</span>
-              <button type="button" onClick={() => goToImage(Math.min(galleryCount - 1, selectedImage + 1))} disabled={selectedImage === galleryCount - 1} aria-label="Next image">
-                <ChevronRight size={16} />
-              </button>
+            // Mobile only: the active dot stretches and fills over 5s, then the gallery moves on (looping)
+            <div className="pdp-gallery-dots">
+              {product.images.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className={`pdp-dot ${idx === selectedImage ? 'is-active' : ''}`}
+                  onClick={() => goToImage(idx)}
+                  aria-label={`Show image ${idx + 1} of ${galleryCount}`}
+                  aria-current={idx === selectedImage || undefined}
+                >
+                  {idx === selectedImage && (
+                    <span
+                      key={selectedImage}
+                      className="pdp-dot-progress"
+                      onAnimationEnd={() => goToImage((selectedImage + 1) % galleryCount)}
+                    />
+                  )}
+                </button>
+              ))}
             </div>
           )}
         </div>

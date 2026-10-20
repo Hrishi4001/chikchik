@@ -286,7 +286,7 @@ img {
   width: 100%;
   aspect-ratio: 3 / 4;
   overflow: hidden;
-  background-color: #FFFFFF;
+  background-color: transparent;
 }
 
 .product-card-media img {
@@ -294,6 +294,17 @@ img {
   height: 100%;
   object-fit: cover;
   transition: opacity 0.5s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Breathing room above and below every card image, site-wide.
+   Images are absolutely placed by inline styles, so inset them instead of padding the box. */
+.product-card-media {
+  --card-img-pad: 7%;
+}
+
+.product-card-media img {
+  top: var(--card-img-pad) !important;
+  height: calc(100% - 2 * var(--card-img-pad)) !important;
 }
 
 .product-card-media .hover-img {
@@ -1750,9 +1761,10 @@ img {
 .pdp-gallery-item {
   display: block;
   width: 100%;
-  padding: 0;
+  /* Breathing room above and below the lighter */
+  padding: clamp(1.5rem, 4vw, 3.5rem) 0;
   border: none;
-  background-color: #FFFFFF;
+  background-color: transparent;
   cursor: zoom-in;
   overflow: hidden;
   aspect-ratio: 3 / 4;
@@ -1774,7 +1786,7 @@ img {
   object-fit: cover;
 }
 
-.pdp-gallery-counter {
+.pdp-gallery-dots {
   display: none;
 }
 
@@ -2142,24 +2154,43 @@ img {
     scroll-snap-align: start;
   }
 
-  .pdp-gallery-counter {
+  /* Dots: the active one stretches into a pill that fills over 5s */
+  .pdp-gallery-dots {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.9rem;
-    padding-top: 0.9rem;
-    font-size: 0.8rem;
-    color: #3A342C;
+    gap: 6px;
+    padding-top: 1rem;
   }
 
-  .pdp-gallery-counter button {
-    display: inline-flex;
-    color: #141414;
-    padding: 0.25rem;
+  .pdp-dot {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    overflow: hidden;
+    background-color: rgba(17, 17, 17, 0.2);
+    cursor: pointer;
+    transition: width 0.35s var(--ease-openform);
   }
 
-  .pdp-gallery-counter button:disabled {
-    opacity: 0.3;
+  .pdp-dot.is-active {
+    width: 36px;
+  }
+
+  .pdp-dot-progress {
+    position: absolute;
+    inset: 0;
+    background-color: #111111;
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: pdp-dot-fill 5s linear forwards;
+  }
+
+  .pdp-gallery.is-paused .pdp-dot-progress {
+    animation-play-state: paused;
   }
 
   .pdp-info {
@@ -3126,5 +3157,78 @@ img {
     position: static !important;
     display: block;
     height: auto !important;
+    /* Phones: the image sets the card height, so the gap is padding on the image itself */
+    padding: 1rem 0;
+    box-sizing: border-box;
   }
+}
+
+@keyframes pdp-dot-fill {
+  to { transform: scaleX(1); }
+}
+
+/* No auto-advance for reduced motion: the active dot is simply filled */
+@media (prefers-reduced-motion: reduce) {
+  .pdp-dot-progress {
+    animation: none;
+    transform: scaleX(1);
+  }
+}
+
+/* ── Apple-style motion ───────────────────────────── */
+:root {
+  --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-apple-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html { scroll-behavior: smooth; }
+
+/* Each route eases in on navigation */
+.page-enter { animation: page-enter 0.7s var(--ease-apple-out) both; }
+
+/* Opacity only: a transform here would trap fixed bars inside the page */
+@keyframes page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Hero artwork settles from a slight zoom */
+.hero-picture img { animation: hero-settle 1.6s var(--ease-apple-out) both; }
+
+@keyframes hero-settle {
+  from { transform: scale(1.08); filter: blur(6px); opacity: 0.4; }
+  to { transform: none; filter: none; opacity: 1; }
+}
+
+/* Scroll reveal: only hidden once JS is ready, so content never sticks invisible.
+   Uses translate/scale so elements keep their own transform (e.g. rotated story cards). */
+.motion-ready [data-reveal='pending'] {
+  opacity: 0;
+  translate: 0 36px;
+  scale: 0.98;
+  filter: blur(8px);
+}
+
+.motion-ready [data-reveal='in'] {
+  transition:
+    opacity 0.9s var(--ease-apple) var(--reveal-delay, 0ms),
+    translate 1.1s var(--ease-apple-out) var(--reveal-delay, 0ms),
+    scale 1.1s var(--ease-apple-out) var(--reveal-delay, 0ms),
+    filter 0.9s var(--ease-apple) var(--reveal-delay, 0ms),
+    transform 0.6s var(--ease-apple-out);
+}
+
+/* Gentle lift on product cards */
+.product-card { transition: translate 0.5s var(--ease-apple-out); }
+
+@media (hover: hover) {
+  .motion-ready .product-card[data-reveal='in']:hover,
+  .product-card:hover { translate: 0 -4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .page-enter,
+  .hero-picture img { animation: none; }
+  .product-card:hover { translate: none; }
 }
