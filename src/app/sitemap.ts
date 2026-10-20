@@ -3,7 +3,10 @@ import { listProducts } from '@/lib/products.server';
 import { COLLECTIONS } from '@/lib/collections';
 import { INFO_PAGES, LEGAL_PAGES } from '@/lib/legal';
 
-const baseUrl = 'https://www.chikchik.in';
+// Products live in Netlify Blobs, which are only available at runtime, so build the sitemap per request
+export const dynamic = 'force-dynamic';
+
+const baseUrl ='https://www.chikchik.in';
 const absolute = (src: string) => (src.startsWith('http') ? src : `${baseUrl}${src}`);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
